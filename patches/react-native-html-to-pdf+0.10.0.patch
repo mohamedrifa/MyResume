@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-native-html-to-pdf/android/build.gradle b/node_modules/react-native-html-to-pdf/android/build.gradle
+index 76bdd17..046f235 100644
+--- a/node_modules/react-native-html-to-pdf/android/build.gradle
++++ b/node_modules/react-native-html-to-pdf/android/build.gradle
+@@ -2,7 +2,7 @@
+ buildscript {
+     repositories {
+         google()
+-        jcenter()
++        mavenCentral()
+     }
+     dependencies {
+         classpath 'com.android.tools.build:gradle:3.3.1'
