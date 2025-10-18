@@ -7,12 +7,15 @@ import {
   Alert,
   TouchableOpacity,
   SafeAreaView,
+  Image,
 } from "react-native";
 import InputField from "../components/InputField";
 import Button from "../components/Button"; // still used for Save only
 import { db } from "../services/firebaseConfig";
 import { ref, update, get, child } from "firebase/database";
 import { AuthContext } from "../context/AuthContext";
+import RNFS from "react-native-fs";
+import { launchImageLibrary, launchCamera } from "react-native-image-picker";
 
 const emptyEdu = () => ({ stream: "", from: "", to: "", percentage: "", institute: "" });
 const emptyExp = () => ({ role: "", company: "", from: "", to: "", summary: "" });
@@ -100,6 +103,19 @@ const Section = ({ title, children }) => (
   </View>
 );
 
+// --- Convert photo uri -> Data URI base64
+const toBase64DataUri = async (uri, mimeHint = "image/jpeg") => {
+  // try to infer mime from extension
+  let mime = mimeHint;
+  const lower = (uri || "").toLowerCase();
+  if (lower.endsWith(".png")) mime = "image/png";
+  else if (lower.endsWith(".webp")) mime = "image/webp";
+  else if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) mime = "image/jpeg";
+
+  const b64 = await RNFS.readFile(uri, "base64");
+  return `data:${mime};base64,${b64}`;
+};
+
 export default function EditResumeScreen({ initialData, onBack }) {
   const { user } = useContext(AuthContext);
   const uid = user?.uid;
@@ -112,6 +128,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
     address: "",
     summary: "",
     skills: "",
+    profile: "", // <-- base64 data uri
     education: [emptyEdu()],
     experience: [emptyExp()],
     projects: [emptyProj()],
@@ -128,6 +145,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
       address: d.address || "",
       summary: d.summary || "",
       skills: Array.isArray(d.skills) ? d.skills.join(", ") : d.skills || "",
+      profile: d.profile || "", // <-- load profile if exists
       education: normalizeEducation(d.education),
       experience: normalizeExperience(d.experience),
       projects: normalizeProjects(d.projects),
@@ -144,12 +162,36 @@ export default function EditResumeScreen({ initialData, onBack }) {
     }
   }, [initialData, uid]);
 
+  // --- Pick & set profile photo ---
+  const pickProfile = async () => {
+    try {
+      const res = await launchImageLibrary({
+        mediaType: "photo",
+        quality: 0.8,
+        selectionLimit: 1,
+      });
+
+      if (res.didCancel) return;
+      const asset = res.assets?.[0];
+      if (!asset?.uri) return;
+
+      const dataUri = await toBase64DataUri(asset.uri, asset.type || "image/jpeg");
+      setForm((prev) => ({ ...prev, profile: dataUri }));
+    } catch (e) {
+      console.log(e);
+      Alert.alert("Image Error", "Unable to pick/convert the image.");
+    }
+  };
+
+  const removeProfile = () => setForm((p) => ({ ...p, profile: "" }));
+
   // --- Save to Firebase ---
   const save = async () => {
     try {
       const payload = {
         ...form,
         skills: form.skills.split(",").map((s) => s.trim()).filter(Boolean),
+        // profile already a base64 data URI string
       };
       await update(ref(db, `users/${uid}`), payload);
       Alert.alert("✅ Saved", "Your resume was updated successfully!");
@@ -166,6 +208,34 @@ export default function EditResumeScreen({ initialData, onBack }) {
       <ScrollView contentContainerStyle={styles.container}>
         {/* PERSONAL INFO */}
         <Section title="Personal Information">
+          {/* Profile image block */}
+          <View style={styles.profileRow}>
+            <View style={styles.avatarWrap}>
+              {form.profile ? (
+                <>
+                  <Image source={{ uri: form.profile }} style={styles.avatar} />
+                  <TouchableOpacity style={styles.avatarRemove} onPress={removeProfile} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Text style={styles.avatarRemoveText}>-</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Text style={{ fontWeight: "700", color: "#64748b" }}>Add</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.profileActions}>
+              <Text style={styles.profileLabel}>Profile Photo</Text>
+              <View style={{ flexDirection: "row", gap: 14 }}>
+                <TextAction title="Change Photo" onPress={pickProfile} />
+                {form.profile ? (
+                  <TextAction title="Remove" onPress={removeProfile} color="#ef4444" />
+                ) : null}
+              </View>
+            </View>
+          </View>
+
           <InputField label="Full Name" value={form.name} onChangeText={(t) => setForm({ ...form, name: t })} />
           <InputField label="Professional Title" value={form.title} onChangeText={(t) => setForm({ ...form, title: t })} />
           <InputField label="Email" value={form.email} onChangeText={(t) => setForm({ ...form, email: t })} />
@@ -467,6 +537,45 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
+  // Profile
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  avatarWrap: {
+    marginRight: 14,
+  },
+  avatar: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: "#e2e8f0",
+  },
+  avatarPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarRemove: {
+    position: "absolute",
+    right: -6,
+    top: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fee2e2",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    zIndex: 10,
+    elevation: 3,
+  },
+  avatarRemoveText: { color: "#ef4444", fontSize: 16, fontWeight: "900", lineHeight: 18 },
+  profileActions: { flex: 1 },
+  profileLabel: { fontWeight: "700", color: "#0f172a", marginBottom: 6 },
+
+  // Cards
   card: {
     position: "relative",
     backgroundColor: "#f9fafb",
@@ -493,7 +602,7 @@ const styles = StyleSheet.create({
     paddingRight: 28, // keep header text away from the close button
   },
 
-  // >>> Fix: make the remove button clickable everywhere (Android needs zIndex + elevation)
+  // Remove on cards
   removeButton: {
     position: "absolute",
     top: 8,
@@ -502,17 +611,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     borderRadius: 8,
     zIndex: 10,
+    elevation: 3,
     backgroundColor: "transparent",
   },
   removeText: { color: "#ef4444", fontWeight: "900", fontSize: 16 },
 
-  // >>> Fix: half-width inputs
+  // Half-width inputs
   row: {
     flexDirection: "row",
-    columnGap: 10, // RN 0.71+; if older, replace with marginRight on first child
+    columnGap: 10,
   },
   half: {
-    flex: 1, // each child gets half width
+    flex: 1,
   },
 
   addButtonContainer: {
