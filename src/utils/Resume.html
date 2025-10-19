@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mohamed Rifayath — Resume</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Minimal, ATS-safe CSS (single column, print friendly) -->
+  <style>
+    :root{
+      --ink:#111;
+      --muted:#444;
+      --accent:#0b7285;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#fff;color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,Helvetica,sans-serif}
+    main{max-width:800px;margin:28px auto;padding:0 18px}
+    h1{font-size:28px;letter-spacing:.3px;color:var(--accent);margin:0 0 6px 0;text-transform:uppercase}
+    h2{font-size:17px;color:var(--accent);margin:18px 0 6px 0;letter-spacing:.2px}
+    h3{font-size:15px;margin:0}
+    p{margin:6px 0 0 0}
+    ul{margin:6px 0 0 18px;padding:0}
+    li{margin:3px 0}
+    hr{border:0;border-top:2px solid var(--accent);margin:14px 0}
+    .header{text-align:center}
+    .subtle{color:var(--muted)}
+    .contact{margin-top:6px;font-size:14px}
+    .contact a{color:var(--accent);text-decoration:none}
+    .block{margin:10px 0 12px 0}
+    .row-top{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;justify-content:space-between}
+    .where-when{font-size:14px;color:var(--muted)}
+    .pilllist{margin:6px 0 0 0;display:flex;flex-wrap:wrap;gap:6px}
+    .pill{border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-size:13px}
+    .nowrap{white-space:nowrap}
+    address{font-style:normal}
+    /* Print tweaks */
+    @media print{
+      main{margin:0;padding:0}
+      a{color:inherit;text-decoration:none}
+      .pill{border-color:#bbb}
+    }
+  </style>
+</head>
+<body>
+<main role="main" aria-label="Resume">
+
+  <!-- Header -->
+  <header class="header" aria-label="Header">
+    <h1>MOHAMED RIFAYATH</h1>
+    <div class="subtle">Aspiring Software Developer (Mobile &amp; Web)</div>
+    <address class="contact">
+      Thirumangalakudi, Thanjavur, Tamil Nadu 612102 • India<br />
+      <a href="mailto:mmohamedrifayath@gmail.com">mmohamedrifayath@gmail.com</a> •
+      <a href="tel:+918903677609">+91&nbsp;8903677609</a><br />
+      <a href="https://linkedin.com/in/mohamed-rifayath-57481b22b">linkedin.com/in/mohamed-rifayath-57481b22b</a> •
+      <a href="https://github.com/mohamedrifa">github.com/mohamedrifa</a>
+    </address>
+  </header>
+
+  <hr />
+
+  <!-- Summary -->
+  <section aria-label="Summary">
+    <h2>Summary</h2>
+    <p>
+      Mobile &amp; Web App Developer with hands-on experience in Flutter, React Native, Java, and Android Studio. Skilled in
+      Firebase, MongoDB, Hive (offline), and Node.js for building scalable, real-time applications. Delivered cross-platform
+      solutions including learning platforms, productivity tools, and service websites. Strong problem-solving skills, focus on
+      performance, offline-first UX, and clean, maintainable code.
+    </p>
+  </section>
+
+  <!-- Skills -->
+  <section aria-label="Skills">
+    <h2>Skills</h2>
+    <p><strong>Languages:</strong> Java, Python, Dart, C, JavaScript</p>
+    <p><strong>Frameworks &amp; Libraries:</strong> Flutter, React Native, React</p>
+    <p><strong>Backend &amp; Databases:</strong> Node.js, Firebase (Auth/Firestore/Firebase Cloud Messaging), MongoDB, Hive (Flutter)</p>
+    <p><strong>Tools:</strong> Android Studio, Git, Canva</p>
+  </section>
+
+  <!-- Projects -->
+  <section aria-label="Projects">
+    <h2>Projects</h2>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>TUDU — Smart To-Do List App</h3>
+        <div class="where-when">Flutter • Hive (offline)</div>
+      </div>
+      <ul>
+        <li>Built a cross-platform to-do app with offline-first storage using Hive and background reminders.</li>
+        <li>Implemented recurring schedules and local notifications for reliable task alerts.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Hitam Vidhya — Learning Ecosystem (5 Modules)</h3>
+        <div class="where-when">Flutter/React • Node.js • Firebase</div>
+      </div>
+      <ul>
+        <li>Main Website for course discovery and brand presence.</li>
+        <li>LMS Portal (Web/App) for course access and payments.</li>
+        <li>Instructor Portal for attendance and progress tracking.</li>
+        <li>Admin Panel for user/course management.</li>
+        <li>Centralized backend connected to all modules.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Hitam Digital — Portfolio Website</h3>
+        <div class="where-when">React • Responsive UI</div>
+      </div>
+      <ul>
+        <li>Designed and deployed a responsive marketing site for a service-based IT company.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Deaf &amp; Mute Learning Platform</h3>
+        <div class="where-when">Android (Java/XML) • Accessibility</div>
+      </div>
+      <ul>
+        <li>Android app for sign-language learning with TTS/STT and Tamil/English support.</li>
+        <li>Community module for peer interaction and practice.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Limra — Custom Technician App</h3>
+        <div class="where-when">React Native • Firebase</div>
+      </div>
+      <ul>
+        <li>Managed customer profiles, billing, in-app messaging, and scheduling.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Coffee Shop App</h3>
+        <div class="where-when">Flutter • Theming • Navigation</div>
+      </div>
+      <ul>
+        <li>Ordering flow with custom UI theme and intuitive navigation.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Experience -->
+  <section aria-label="Experience">
+    <h2>Experience</h2>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Mobile App Developer — Hitam Edge Labs</h3>
+        <div class="where-when">
+          <time datetime="2025-06">Jun 2025</time> – <time datetime="2025-09">Sep 2025</time> • Remote/On-site
+        </div>
+      </div>
+      <ul>
+        <li>Developed React Native apps backed by Firebase (Auth, Firestore, FCM).</li>
+        <li>Improved UI performance and offline handling; resolved key production bugs.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Intern — ADM Education &amp; Welfare Society</h3>
+        <div class="where-when">
+          <time datetime="2024-09">Sep 2024</time> – <time datetime="2024-12">Dec 2024</time> • Remote
+        </div>
+      </div>
+      <ul>
+        <li>Completed a 3-month Android development internship using Java and Firebase.</li>
+        <li>Built functional app features and collaborated on code reviews and debugging.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Freelancer — Phoenix Tech Pvt Ltd</h3>
+        <div class="where-when">
+          <time datetime="2023-09">Sep 2023</time> – <time datetime="2024-07">Jul 2024</time> • India
+        </div>
+      </div>
+      <ul>
+        <li>Delivered mobile and web solutions with real-time features and scalable backends.</li>
+        <li>Gathered requirements, shipped MVPs, and iterated based on client feedback.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Education -->
+  <section aria-label="Education">
+    <h2>Education</h2>
+    <div class="block">
+      <h3>B.E. — Computer Science and Engineering</h3>
+      <div class="where-when">Coimbatore Institute of Engineering and Technology • <time datetime="2021">2021</time> – <time datetime="2025">2025</time></div>
+      <div>CGPA: 7.52</div>
+    </div>
+
+    <div class="block">
+      <h3>H.S.C — Higher Secondary Certificate</h3>
+      <div class="where-when">Rice City Matric Hr. Sec. School • <time datetime="2021">2021</time></div>
+      <div>Result: 83.3%</div>
+    </div>
+
+    <div class="block">
+      <h3>S.S.L.C — Secondary School Leaving Certificate</h3>
+      <div class="where-when">Rice City Matric Hr. Sec. School • <time datetime="2019">2019</time></div>
+      <div>Result: 79%</div>
+    </div>
+  </section>
+
+  <!-- Certifications -->
+  <section aria-label="Certifications">
+    <h2>Certifications</h2>
+    <ul>
+      <li>AWS Skill Builder — Cloud Practitioner Certificate</li>
+      <li>React Native Mobile App Development (Udemy)</li>
+      <li>3-Month Internship Completion Certificate (ADM)</li>
+      <li>National Conference on CIETM 2024</li>
+      <li>Deep Learning in NVIDIA</li>
+    </ul>
+  </section>
+
+</main>
+</body>
+</html>

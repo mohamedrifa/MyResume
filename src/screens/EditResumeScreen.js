@@ -18,8 +18,8 @@ import RNFS from "react-native-fs";
 import { launchImageLibrary, launchCamera } from "react-native-image-picker";
 
 const emptyEdu = () => ({ stream: "", from: "", to: "", percentage: "", institute: "" });
-const emptyExp = () => ({ role: "", company: "", from: "", to: "", summary: "" });
-const emptyProj = () => ({ title: "", description: "" });
+const emptyExp = () => ({ role: "",location: "", company: "", from: "", to: "", summary: "" });
+const emptyProj = () => ({ title: "", stack: "", description: "" });
 const emptyCert = () => ({ name: "" });
 
 const ensureArray = (val) => {
@@ -96,9 +96,12 @@ const RemoveButton = ({ onPress }) => (
 );
 
 // --- Section wrapper ---
-const Section = ({ title, children }) => (
+const Section = ({ title, children, suggetion }) => (
   <View style={styles.sectionContainer}>
-    <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={{ flexDirection: "row" , justifyContent: "space-between", alignItems: "center" }}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {suggetion ? <Text style={{ color: "#6b7280", fontSize: 12, alignSelf: "center" }}>{suggetion}</Text> : null}
+    </View>
     {children}
   </View>
 );
@@ -124,6 +127,8 @@ export default function EditResumeScreen({ initialData, onBack }) {
     name: "",
     title: "",
     email: "",
+    git: "",
+    linkedIn: "",
     phone: "",
     address: "",
     summary: "",
@@ -190,8 +195,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
     try {
       const payload = {
         ...form,
-        skills: form.skills.split(",").map((s) => s.trim()).filter(Boolean),
-        // profile already a base64 data URI string
+        skills: form.skills.split(";").map((s) => s.trim()).filter(Boolean),
       };
       await update(ref(db, `users/${uid}`), payload);
       Alert.alert("✅ Saved", "Your resume was updated successfully!");
@@ -240,18 +244,22 @@ export default function EditResumeScreen({ initialData, onBack }) {
           <InputField label="Professional Title" value={form.title} onChangeText={(t) => setForm({ ...form, title: t })} />
           <InputField label="Email" value={form.email} onChangeText={(t) => setForm({ ...form, email: t })} />
           <InputField label="Phone" value={form.phone} onChangeText={(t) => setForm({ ...form, phone: t })} />
-          <InputField label="Address" value={form.address} onChangeText={(t) => setForm({ ...form, address: t })} />
+          <InputField label="GitHub/Others" value={form.git} onChangeText={(t) => setForm({ ...form, git: t })} />
+          <InputField label="LinkedIn" value={form.linkedIn} onChangeText={(t) => setForm({ ...form, linkedIn: t })} />
+          <InputField multiline label="Address" value={form.address} onChangeText={(t) => setForm({ ...form, address: t })} />
         </Section>
 
         <Section title="Summary">
           <InputField multiline value={form.summary} onChangeText={(t) => setForm({ ...form, summary: t })} />
         </Section>
 
+        <Text style={{ color: "#6b7280", fontSize: 12 }}>{"Note: separate skills by semicolon and use <strong></strong> for Bold"}</Text>
         <Section title="Skills">
-          <InputField value={form.skills} onChangeText={(t) => setForm({ ...form, skills: t })} placeholder="e.g., JavaScript, React" />
+          <InputField multiline value={form.skills} onChangeText={(t) => setForm({ ...form, skills: t })} placeholder="e.g., JavaScript, React" />
         </Section>
 
         {/* PROJECTS */}
+        <Text style={{ color: "#6b7280", fontSize: 12 }}>Note: use \n for new lines</Text>
         <Section title="Projects">
           {form.projects.map((p, idx) => (
             <View key={idx} style={styles.card}>
@@ -269,6 +277,16 @@ export default function EditResumeScreen({ initialData, onBack }) {
                   setForm({
                     ...form,
                     projects: form.projects.map((x, i) => (i === idx ? { ...x, title: t } : x)),
+                  })
+                }
+              />
+              <InputField
+                label="Stack/Technologies"
+                value={p.stack}
+                onChangeText={(t) =>
+                  setForm({
+                    ...form,
+                    projects: form.projects.map((x, i) => (i === idx ? { ...x, stack: t } : x)),
                   })
                 }
               />
@@ -311,6 +329,16 @@ export default function EditResumeScreen({ initialData, onBack }) {
                   setForm({
                     ...form,
                     experience: form.experience.map((e, i) => (i === idx ? { ...e, role: t } : e)),
+                  })
+                }
+              />
+              <InputField
+                label="Mode/Location"
+                value={x.location}
+                onChangeText={(t) =>
+                  setForm({
+                    ...form,
+                    experience: form.experience.map((e, i) => (i === idx ? { ...e, location: t } : e)),
                   })
                 }
               />
@@ -611,7 +639,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     borderRadius: 8,
     zIndex: 10,
-    elevation: 3,
     backgroundColor: "transparent",
   },
   removeText: { color: "#ef4444", fontWeight: "900", fontSize: 16 },

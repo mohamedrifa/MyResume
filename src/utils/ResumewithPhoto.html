@@ -1,104 +1,8 @@
-// src/utils/pdfTemplate.js
-export const resumeTemplate = (data) => {
-  const skillsHtml = (data.skills || []).map(s => `<li>${s}</li>`).join("");
-  const expHtml = (data.experience || []).map(e => `
-    <div style="margin-bottom:10px;">
-      <strong>${e.role} — ${e.company}</strong><br/>
-      <small>${e.duration}</small>
-      <p style="margin:6px 0;">${e.desc}</p>
-    </div>
-  `).join("");
-
-  const isGit = () => {
-    if(data.git && data.git.trim() !== "") {
-      return `•
-        <a href="${data.git}">${data.git}</a>`;
-    } else {
-      return "";
-    } 
-  }
-
-  const summary = () => {
-    if(data.summary && data.summary.trim() !== "") {
-      return `<section aria-label="Summary">
-    <h2>Summary</h2>
-    <p>
-      ${data.summary}
-    </p>
-  </section>`;} 
-    else {
-      return "";
-    }
-  }
-  const skillspara = (skillsArray) => {
-    let skillsContent = "";
-    for(let i=0; i<skillsArray.length; i++) {
-      skillsContent += `<p>${skillsArray[i]}</p>`
-    }
-    return skillsContent;
-  }
-  const skillsSection = () => {
-    const skillsArray = Array.isArray(data.skills)
-      ? data.skills
-      : (data.skills || "").split(';');
-
-    if (skillsArray.length > 0) {
-      return `<section aria-label="Skills">
-        <h2>Skills</h2>
-        ${skillspara(skillsArray)}
-      </section>`;
-    }
-  return "";
-  };
-  const profileImage = () => {
-    if(data.profile && data.profile.trim() !== "") {
-      return `
-      <div class="photo">
-        <img src="${data.profile}" alt="Profile photo of ${data.name}" />
-      </div>`;
-    } else {
-      return ``;
-    }
-  }
-  const headerStyle = data.profile && data.profile.trim() !== "" ? "text-align:left;" : "text-align:center;";
-
-  const eachProjects = (projects) => {
-    let projectContent = "";
-    for(let i=0; i<projects.length; i++) {
-      const p = projects[i];
-      projectContent += `
-      <div class="block">
-        <div class="row-top">
-          <h3>${p.title}</h3>
-          <div class="where-when">${p.stack}</div>
-        </div>
-        <ul>
-          <li>Built a cross-platform to-do app with offline-first storage using Hive and background reminders.</li>
-          <li>Implemented recurring schedules and local notifications for reliable task alerts.</li>
-        </ul>
-      </div>
-      `
-    }
-    return projectContent;
-  }
-
-  const projects = () => {
-    if(data.projects && data.projects !== "") {
-      return `
-    <section aria-label="Projects">
-      <h2>Projects</h2>
-      ${eachProjects(data.projects)}
-    </section>
-      `;
-    }
-  }
-
-  return `
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>${data.name} — Resume</title>
+  <title>Mohamed Rifayath — Resume</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Minimal, ATS-friendly CSS -->
@@ -132,7 +36,7 @@ export const resumeTemplate = (data) => {
       flex-wrap:wrap;
       align-items:center;
       justify-content:center;
-      ${headerStyle}
+      text-align:left;
       gap:20px;
     }
     .photo{
@@ -173,15 +77,19 @@ export const resumeTemplate = (data) => {
 
   <!-- Header with Photo -->
   <header class="header" aria-label="Header">
-    ${profileImage()}
+    <div class="photo">
+      <img src="https://images.unsplash.com/photo-1603415526960-f7e0328c63b1?auto=format&fit=crop&w=300&q=80" 
+           alt="Profile photo of Mohamed Rifayath" />
+    </div>
     <div class="header-text">
-      <h1>${data.name.toUpperCase()}</h1>
-      <div class="subtle">${data.title}</div>
+      <h1>MOHAMED RIFAYATH</h1>
+      <div class="subtle">Aspiring Software Developer (Mobile &amp; Web)</div>
       <address class="contact">
-        ${data.address}<br />
-        <a href="mailto:${data.email}">${data.email}</a> •
-        <a href="tel:+91${data.phone}">+91&nbsp;${data.phone}</a><br />
-        <a href="${data.linkedIn}">${data.linkedIn}</a> ${isGit()}
+        Thirumangalakudi, Thanjavur, Tamil Nadu 612102 • India<br />
+        <a href="mailto:mmohamedrifayath@gmail.com">mmohamedrifayath@gmail.com</a> •
+        <a href="tel:+918903677609">+91&nbsp;8903677609</a><br />
+        <a href="https://linkedin.com/in/mohamed-rifayath-57481b22b">linkedin.com/in/mohamed-rifayath-57481b22b</a> •
+        <a href="https://github.com/mohamedrifa">github.com/mohamedrifa</a>
       </address>
     </div>
   </header>
@@ -189,13 +97,96 @@ export const resumeTemplate = (data) => {
   <hr />
 
   <!-- Summary -->
-  ${summary()}
+  <section aria-label="Summary">
+    <h2>Summary</h2>
+    <p>
+      Mobile &amp; Web App Developer with hands-on experience in Flutter, React Native, Java, and Android Studio. Skilled in
+      Firebase, MongoDB, Hive (offline), and Node.js for building scalable, real-time applications. Delivered cross-platform
+      solutions including learning platforms, productivity tools, and service websites. Strong problem-solving skills, focus on
+      performance, offline-first UX, and clean, maintainable code.
+    </p>
+  </section>
 
   <!-- Skills -->
-  ${skillsSection()}
+  <section aria-label="Skills">
+    <h2>Skills</h2>
+    <p><strong>Languages:</strong> Java, Python, Dart, C, JavaScript</p>
+    <p><strong>Frameworks &amp; Libraries:</strong> Flutter, React Native, React</p>
+    <p><strong>Backend &amp; Databases:</strong> Node.js, Firebase, MongoDB, Hive (Flutter)</p>
+    <p><strong>Tools:</strong> Android Studio, Git, Canva</p>
+    </div>
+  </section>
 
   <!-- Projects -->
-  ${projects()}
+  <section aria-label="Projects">
+    <h2>Projects</h2>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>TUDU — Smart To-Do List App</h3>
+        <div class="where-when">Flutter • Hive (offline)</div>
+      </div>
+      <ul>
+        <li>Built a cross-platform to-do app with offline-first storage using Hive and background reminders.</li>
+        <li>Implemented recurring schedules and local notifications for reliable task alerts.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Hitam Vidhya — Learning Ecosystem (5 Modules)</h3>
+        <div class="where-when">Flutter/React • Node.js • Firebase</div>
+      </div>
+      <ul>
+        <li>Main Website for course discovery and brand presence.</li>
+        <li>LMS Portal (Web/App) for course access and payments.</li>
+        <li>Instructor Portal for attendance and progress tracking.</li>
+        <li>Admin Panel for user/course management.</li>
+        <li>Centralized backend connected to all modules.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Hitam Digital — Portfolio Website</h3>
+        <div class="where-when">React • Responsive UI</div>
+      </div>
+      <ul>
+        <li>Designed and deployed a responsive marketing site for a service-based IT company.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Deaf &amp; Mute Learning Platform</h3>
+        <div class="where-when">Android (Java/XML) • Accessibility</div>
+      </div>
+      <ul>
+        <li>Android app for sign-language learning with TTS/STT and Tamil/English support.</li>
+        <li>Community module for peer interaction and practice.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Limra — Custom Technician App</h3>
+        <div class="where-when">React Native • Firebase</div>
+      </div>
+      <ul>
+        <li>Managed customer profiles, billing, in-app messaging, and scheduling.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="row-top">
+        <h3>Coffee Shop App</h3>
+        <div class="where-when">Flutter • Theming • Navigation</div>
+      </div>
+      <ul>
+        <li>Ordering flow with custom UI theme and intuitive navigation.</li>
+      </ul>
+    </div>
+  </section>
 
   <!-- Experience -->
   <section aria-label="Experience">
@@ -278,5 +269,3 @@ export const resumeTemplate = (data) => {
 </main>
 </body>
 </html>
-  `;
-};
