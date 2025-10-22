@@ -1,7 +1,8 @@
 // src/screens/ViewResumeScreen.js
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Alert, Platform } from "react-native";
+import { View, Text, StyleSheet, Alert, Platform, Modal } from "react-native";
 import { WebView } from "react-native-webview";
+import { ColorPicker, fromHsv } from "react-native-color-picker"; // ← wheel picker
 // import RNHTMLtoPDF from "react-native-html-to-pdf";
 
 import Button from "../components/Button";
@@ -9,9 +10,11 @@ import { resumeTemplate } from "../utils/pdfTemplate";
 
 const ViewResumeScreen = ({ resume, onBack }) => {
   const [loading, setLoading] = useState(false);
+  const [color, setColor] = useState("#0b7285");
+  const [showPicker, setShowPicker] = useState(false);
 
-  // Build HTML once per resume change
-  const html = useMemo(() => resumeTemplate(resume || {}), [resume]);
+  // IMPORTANT: pass color directly (your old "color = {'#0b7285'}" was a bug)
+  const html = useMemo(() => resumeTemplate(resume, color), [resume, color]);
 
   const generatePDF = async () => {
     try {
@@ -21,15 +24,12 @@ const ViewResumeScreen = ({ resume, onBack }) => {
         .replace(/\s+/g, "_")
         .replace(/[^\w\-]/g, "")}`;
 
-      // Create the PDF from the HTML
       // const pdfOptions = {
       //   html,
       //   fileName,
       //   base64: false,
-      //   // On Android, 'Downloads' is the most user-visible location without extra perms
       //   directory: Platform.OS === "android" ? "Downloads" : "Documents",
       // };
-
       // const { filePath } = await RNHTMLtoPDF.convert(pdfOptions);
 
       setLoading(false);
@@ -48,7 +48,10 @@ const ViewResumeScreen = ({ resume, onBack }) => {
           <Text style={styles.title}>{resume?.name || "Your Name"}</Text>
           {!!resume?.title && <Text style={styles.subtitle}>{resume.title}</Text>}
         </View>
+
         <View style={styles.actions}>
+          <Button title="Pick color" onPress={() => setShowPicker(true)} />
+          <View style={[styles.colorDot, { backgroundColor: color }]} />
           <Button
             title={loading ? "Generating..." : "Download as PDF"}
             onPress={generatePDF}
@@ -63,13 +66,37 @@ const ViewResumeScreen = ({ resume, onBack }) => {
         originWhitelist={["*"]}
         source={{ html, baseUrl: "" }}
         style={styles.webview}
-        // Helpful for better PDF fidelity / fonts:
         javaScriptEnabled
         domStorageEnabled
         scalesPageToFit
-        // Avoid bouncing on iOS
         bounces={false}
       />
+
+      {/* Color Wheel Modal */}
+      <Modal visible={showPicker} transparent animationType="slide" onRequestClose={() => setShowPicker(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Choose an accent color</Text>
+
+            {/* Wheel + brightness slider (sliders are hidden by default; set hideSliders={false} if you want them) */}
+            <ColorPicker
+              style={{ height: 260, width: "100%" }}
+              defaultColor={color}
+              hideSliders
+              onColorChange={(hsv) => {
+                // convert HSV to hex and update live so the preview updates immediately
+                const hex = fromHsv(hsv);
+                setColor(hex);
+              }}
+            />
+
+            <View style={styles.modalActions}>
+              <Button title="Done" onPress={() => setShowPicker(false)} />
+              <Button title="Reset" onPress={() => setColor("#0b7285")} style={{ backgroundColor: "#6b7280" }} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -89,12 +116,31 @@ const styles = StyleSheet.create({
     marginTop: 10,
     gap: 8,
     flexDirection: "row",
+    alignItems: "center",
     flexWrap: "wrap",
   },
-  webview: {
-    flex: 1,
-    backgroundColor: "#fff",
+  webview: { flex: 1, backgroundColor: "#fff" },
+  colorDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    marginHorizontal: 4,
   },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  modalTitle: { fontWeight: "800", fontSize: 16, marginBottom: 12 },
+  modalActions: { flexDirection: "row", gap: 8, marginTop: 12 },
 });
 
 export default ViewResumeScreen;

@@ -1,25 +1,18 @@
 // src/utils/pdfTemplate.js
-export const resumeTemplate = (data) => {
-  const skillsHtml = (data.skills || []).map(s => `<li>${s}</li>`).join("");
-  const expHtml = (data.experience || []).map(e => `
-    <div style="margin-bottom:10px;">
-      <strong>${e.role} — ${e.company}</strong><br/>
-      <small>${e.duration}</small>
-      <p style="margin:6px 0;">${e.desc}</p>
-    </div>
-  `).join("");
+// src/utils/pdfTemplate.js
+export const resumeTemplate = (data, color) => {
 
   const isGit = () => {
-    if(data.git && data.git.trim() !== "") {
+    if (data.git && data.git.trim() !== "") {
       return `•
         <a href="${data.git}">${data.git}</a>`;
     } else {
       return "";
-    } 
-  }
+    }
+  };
 
   const summary = () => {
-    if(data.summary && data.summary.trim() !== "") {
+    if (data.summary && data.summary.trim() !== "") {
       return `<section aria-label="Summary">
     <h2>Summary</h2>
     <p>
@@ -29,29 +22,35 @@ export const resumeTemplate = (data) => {
     else {
       return "";
     }
-  }
+  };
+
   const skillspara = (skillsArray) => {
     let skillsContent = "";
-    for(let i=0; i<skillsArray.length; i++) {
-      skillsContent += `<p>${skillsArray[i]}</p>`
+    for (let i = 0; i < skillsArray.length; i++) {
+      const s = String(skillsArray[i]).trim();
+      if (!s) continue;
+      skillsContent += `<p>${s}</p>`;
     }
     return skillsContent;
-  }
+  };
+
   const skillsSection = () => {
     const skillsArray = Array.isArray(data.skills)
       ? data.skills
       : (data.skills || "").split(';');
 
-    if (skillsArray.length > 0) {
+    const hasAny = skillsArray.some(s => String(s).trim().length > 0);
+    if (hasAny) {
       return `<section aria-label="Skills">
         <h2>Skills</h2>
         ${skillspara(skillsArray)}
       </section>`;
     }
-  return "";
+    return "";
   };
+
   const profileImage = () => {
-    if(data.profile && data.profile.trim() !== "") {
+    if (data.profile && data.profile.trim() !== "") {
       return `
       <div class="photo">
         <img src="${data.profile}" alt="Profile photo of ${data.name}" />
@@ -59,31 +58,34 @@ export const resumeTemplate = (data) => {
     } else {
       return ``;
     }
-  }
+  };
+
   const headerStyle = data.profile && data.profile.trim() !== "" ? "text-align:left;" : "text-align:center;";
 
   const eachProjects = (projects) => {
     let projectContent = "";
-    for(let i=0; i<projects.length; i++) {
-      const p = projects[i];
+    for (let i = 0; i < projects.length; i++) {
+      const p = projects[i] || {};
+      const lines = String(p.description || "")
+        .split(';')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const listItems = lines.map(line => `<li>${line}</li>`).join('');
       projectContent += `
-      <div class="block">
-        <div class="row-top">
-          <h3>${p.title}</h3>
-          <div class="where-when">${p.stack}</div>
+        <div class="block">
+          <div class="row-top">
+            <h3>${p.title || ""}</h3>
+            <div class="where-when">${p.stack || ""}</div>
+          </div>
+          ${listItems ? `<ul>${listItems}</ul>` : ""}
         </div>
-        <ul>
-          <li>Built a cross-platform to-do app with offline-first storage using Hive and background reminders.</li>
-          <li>Implemented recurring schedules and local notifications for reliable task alerts.</li>
-        </ul>
-      </div>
-      `
+      `;
     }
     return projectContent;
-  }
+  };
 
   const projects = () => {
-    if(data.projects && data.projects !== "") {
+    if (Array.isArray(data.projects) && data.projects.length > 0) {
       return `
     <section aria-label="Projects">
       <h2>Projects</h2>
@@ -91,7 +93,141 @@ export const resumeTemplate = (data) => {
     </section>
       `;
     }
-  }
+    return "";
+  };
+
+  const eachExperience = (experiences) => {
+    let experienceContent = "";
+    for (let i = 0; i < experiences.length; i++) {
+      const p = experiences[i] || {};
+      const lines = String(p.summary || "")
+        .split(';')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const listItems = lines.map(line => `<li>${line}</li>`).join('');
+      experienceContent += `
+        <div class="block">
+          <div class="row-top">
+            <h3>${p.role || ""} — ${p.company || ""}</h3>
+            <div class="where-when">
+              <time datetime="${p.from || ""}">${p.from || ""}</time> – <time datetime="${p.to || ""}">${p.to || ""}</time> • ${p.location || ""}
+            </div>
+          </div>
+          ${listItems ? `<ul>${listItems}</ul>` : ""}
+        </div>
+      `;
+    }
+    return experienceContent;
+  };
+
+  const experience = () => {
+    if (Array.isArray(data.experience) && data.experience.length > 0) {
+      return `
+      <section aria-label="Experience">
+        <h2>Experience</h2>
+        ${eachExperience(data.experience)}
+      </section>`;
+    } else {
+      return "";
+    }
+  };
+
+  const eachEducation = (educations) => {
+    let educationContent = "";
+    const score = (a) => {
+      const num = parseFloat(a);
+      if (isNaN(num)) return "";
+      return num <= 10 ? "CGPA:" : "Percentage:";
+    };
+    for (let i = 0; i < educations.length; i++) {
+      const p = educations[i] || {};
+      educationContent += `
+      <div class="block">
+        <h3>${p.stream || ""}</h3>
+        <div class="where-when">${p.institute || ""} • <time datetime="${p.from || ""}">${p.from || ""}</time> – <time datetime="${p.to || ""}">${p.to || ""}</time></div>
+        ${p.percentage ? `<div>${score(p.percentage)} ${p.percentage}</div>` : ""}
+      </div>
+      `;
+    }
+    return educationContent;
+  };
+
+  const education = () => {
+    if (Array.isArray(data.education) && data.education.length > 0) {
+      return `
+      <section aria-label="Education">
+        <h2>Education</h2>
+        ${eachEducation(data.education)}
+      </section>
+      `;
+    } else {
+      return "";
+    }
+  };
+
+  const certifications = () => {
+    if (Array.isArray(data.certifications) && data.certifications.length > 0) {
+      const items = data.certifications
+        .map((c) => (c && c.name ? `<li>${c.name}</li>` : ""))
+        .join("");
+      if (!items.trim()) return "";
+      return `
+      <section aria-label="Certifications">
+        <h2>Certifications</h2>
+        <ul>
+          ${items}
+        </ul>
+      </section>`;
+    } else {
+      return "";
+    }
+  };
+
+  /* ---------- NEW: Languages (with progress bars) ---------- */
+  const clampPct = (v) => {
+    const n = Number(String(v ?? "").replace(/[^\d.-]/g, ""));
+    if (Number.isNaN(n)) return 0;
+    return Math.max(0, Math.min(100, Math.round(n)));
+  };
+
+  const languagesSection = () => {
+    const arr = Array.isArray(data.languages) ? data.languages : [];
+
+    // Filter valid entries (need at least a language name)
+    const rows = arr
+      .map((x) => ({
+        language: String(x?.language || "").trim(),
+        proficiency: clampPct(x?.proficiency),
+      }))
+      .filter((x) => x.language.length > 0);
+
+    if (rows.length === 0) return "";
+
+    const items = rows
+      .map(
+        (l) => `
+        <div class="lang-item" role="group" aria-label="${l.language}">
+          <div class="lang-row">
+            <span class="lang-name">${l.language}</span>
+            <span class="lang-pct" aria-hidden="true">${l.proficiency}%</span>
+          </div>
+          <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${l.proficiency}" aria-label="${l.language} proficiency">
+            <div class="meter-bar" style="width:${l.proficiency}%"></div>
+          </div>
+        </div>`
+      )
+      .join("");
+
+    return `
+      <section aria-label="Languages">
+        <h2>Languages</h2>
+        <div class="lang-list">
+          ${items}
+        </div>
+      </section>
+    `;
+  };
+  /* -------------------------------------------------------- */
 
   return `
   <!DOCTYPE html>
@@ -106,7 +242,8 @@ export const resumeTemplate = (data) => {
     :root{
       --ink:#111;
       --muted:#444;
-      --accent:#0b7285;
+      --accent:${color};
+      --meter-bg:#e5e7eb;
     }
     *{box-sizing:border-box}
     html,body{
@@ -160,6 +297,27 @@ export const resumeTemplate = (data) => {
     .pilllist{margin:6px 0 0 0;display:flex;flex-wrap:wrap;gap:6px}
     .pill{border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-size:13px}
     address{font-style:normal}
+
+    /* Languages */
+    .lang-list{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+    .lang-item{}
+    .lang-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+    .lang-name{font-weight:600}
+    .lang-pct{font-size:13px;color:var(--muted)}
+    .meter{
+      width:100%;
+      height:8px;
+      background:var(--meter-bg);
+      border-radius:6px;
+      overflow:hidden;
+    }
+    .meter-bar{
+      height:100%;
+      background:var(--accent);
+      width:0%;
+      transition:width .2s ease;
+    }
+
     /* Print adjustments */
     @media print{
       main{margin:0;padding:0}
@@ -175,13 +333,12 @@ export const resumeTemplate = (data) => {
   <header class="header" aria-label="Header">
     ${profileImage()}
     <div class="header-text">
-      <h1>${data.name.toUpperCase()}</h1>
-      <div class="subtle">${data.title}</div>
+      <h1>${(data.name || "").toUpperCase()}</h1>
+      <div class="subtle">${data.title || ""}</div>
       <address class="contact">
-        ${data.address}<br />
-        <a href="mailto:${data.email}">${data.email}</a> •
-        <a href="tel:+91${data.phone}">+91&nbsp;${data.phone}</a><br />
-        <a href="${data.linkedIn}">${data.linkedIn}</a> ${isGit()}
+        ${data.address || ""}<br />
+        ${data.email ? `<a href="mailto:${data.email}">${data.email}</a>` : ""} ${data.phone ? `• <a href="tel:+91${data.phone}">+91&nbsp;${data.phone}</a>` : ""}<br />
+        ${data.linkedIn ? `<a href="${data.linkedIn}">${data.linkedIn}</a>` : ""} ${isGit()}
       </address>
     </div>
   </header>
@@ -198,82 +355,16 @@ export const resumeTemplate = (data) => {
   ${projects()}
 
   <!-- Experience -->
-  <section aria-label="Experience">
-    <h2>Experience</h2>
-
-    <div class="block">
-      <div class="row-top">
-        <h3>Mobile App Developer — Hitam Edge Labs</h3>
-        <div class="where-when">
-          <time datetime="2025-06">Jun 2025</time> – <time datetime="2025-09">Sep 2025</time> • Remote/On-site
-        </div>
-      </div>
-      <ul>
-        <li>Developed React Native apps backed by Firebase (Auth, Firestore, FCM).</li>
-        <li>Improved UI performance and offline handling; resolved key production bugs.</li>
-      </ul>
-    </div>
-
-    <div class="block">
-      <div class="row-top">
-        <h3>Intern — ADM Education &amp; Welfare Society</h3>
-        <div class="where-when">
-          <time datetime="2024-09">Sep 2024</time> – <time datetime="2024-12">Dec 2024</time> • Remote
-        </div>
-      </div>
-      <ul>
-        <li>Completed a 3-month Android development internship using Java and Firebase.</li>
-        <li>Built functional app features and collaborated on code reviews and debugging.</li>
-      </ul>
-    </div>
-
-    <div class="block">
-      <div class="row-top">
-        <h3>Freelancer — Phoenix Tech Pvt Ltd</h3>
-        <div class="where-when">
-          <time datetime="2023-09">Sep 2023</time> – <time datetime="2024-07">Jul 2024</time> • India
-        </div>
-      </div>
-      <ul>
-        <li>Delivered mobile and web solutions with real-time features and scalable backends.</li>
-        <li>Gathered requirements, shipped MVPs, and iterated based on client feedback.</li>
-      </ul>
-    </div>
-  </section>
+  ${experience()}
 
   <!-- Education -->
-  <section aria-label="Education">
-    <h2>Education</h2>
-    <div class="block">
-      <h3>B.E. — Computer Science and Engineering</h3>
-      <div class="where-when">Coimbatore Institute of Engineering and Technology • <time datetime="2021">2021</time> – <time datetime="2025">2025</time></div>
-      <div>CGPA: 7.52</div>
-    </div>
+  ${education()}
 
-    <div class="block">
-      <h3>H.S.C — Higher Secondary Certificate</h3>
-      <div class="where-when">Rice City Matric Hr. Sec. School • <time datetime="2021">2021</time></div>
-      <div>Result: 83.3%</div>
-    </div>
-
-    <div class="block">
-      <h3>S.S.L.C — Secondary School Leaving Certificate</h3>
-      <div class="where-when">Rice City Matric Hr. Sec. School • <time datetime="2019">2019</time></div>
-      <div>Result: 79%</div>
-    </div>
-  </section>
+  <!-- Languages -->
+  ${languagesSection()}
 
   <!-- Certifications -->
-  <section aria-label="Certifications">
-    <h2>Certifications</h2>
-    <ul>
-      <li>AWS Skill Builder — Cloud Practitioner Certificate</li>
-      <li>React Native Mobile App Development (Udemy)</li>
-      <li>3-Month Internship Completion Certificate (ADM)</li>
-      <li>National Conference on CIETM 2024</li>
-      <li>Deep Learning in NVIDIA</li>
-    </ul>
-  </section>
+  ${certifications()}
 
 </main>
 </body>

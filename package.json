@@ -17,6 +17,7 @@
     "postinstall-postinstall": "^2.1.0",
     "react": "19.1.1",
     "react-native": "0.82.0",
+    "react-native-color-picker": "^0.6.0",
     "react-native-fs": "^2.20.0",
     "react-native-image-picker": "^8.2.1",
     "react-native-linear-gradient": "^2.8.3",

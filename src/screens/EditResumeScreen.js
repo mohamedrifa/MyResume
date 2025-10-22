@@ -15,12 +15,13 @@ import { db } from "../services/firebaseConfig";
 import { ref, update, get, child } from "firebase/database";
 import { AuthContext } from "../context/AuthContext";
 import RNFS from "react-native-fs";
-import { launchImageLibrary, launchCamera } from "react-native-image-picker";
+import { launchImageLibrary } from "react-native-image-picker";
 
 const emptyEdu = () => ({ stream: "", from: "", to: "", percentage: "", institute: "" });
-const emptyExp = () => ({ role: "",location: "", company: "", from: "", to: "", summary: "" });
+const emptyExp = () => ({ role: "", location: "", company: "", from: "", to: "", summary: "" });
 const emptyProj = () => ({ title: "", stack: "", description: "" });
 const emptyCert = () => ({ name: "" });
+const emptyLang = () => ({ language: "", proficiency: "" }); // 0–100
 
 const ensureArray = (val) => {
   if (Array.isArray(val)) return val;
@@ -36,34 +37,57 @@ const ensureArray = (val) => {
   return [];
 };
 
-const normalizeEducation = (raw) =>
-  (ensureArray(raw).length ? ensureArray(raw) : [emptyEdu()]).map((e) => ({
+const normalizeEducation = (raw) => {
+  const arr = ensureArray(raw);
+  return (arr.length ? arr : [emptyEdu()]).map((e) => ({
     stream: e.stream || e.degree || "",
     from: e.from || e.start || "",
     to: e.to || e.end || "",
     percentage: e.percentage || e.cgpa || "",
     institute: e.institute || e.school || e.college || e.name || "",
   }));
+};
 
-const normalizeExperience = (raw) =>
-  (ensureArray(raw).length ? ensureArray(raw) : [emptyExp()]).map((x) => ({
+const normalizeExperience = (raw) => {
+  const arr = ensureArray(raw);
+  return (arr.length ? arr : [emptyExp()]).map((x) => ({
     role: x.role || "",
+    location: x.location || x.mode || "", // <-- keep location
     company: x.company || "",
     from: x.from || "",
     to: x.to || "",
     summary: x.summary || "",
   }));
+};
 
-const normalizeProjects = (raw) =>
-  (ensureArray(raw).length ? ensureArray(raw) : [emptyProj()]).map((p) => ({
+const normalizeProjects = (raw) => {
+  const arr = ensureArray(raw);
+  return (arr.length ? arr : [emptyProj()]).map((p) => ({
     title: p.title || p.name || "",
+    stack: p.stack || "",
     description: p.description || "",
   }));
+};
 
-const normalizeCertifications = (raw) =>
-  (ensureArray(raw).length ? ensureArray(raw) : [emptyCert()]).map((c) => ({
+const normalizeCertifications = (raw) => {
+  const arr = ensureArray(raw);
+  return (arr.length ? arr : [emptyCert()]).map((c) => ({
     name: c.name || c.title || c.certificate || c || "",
   }));
+};
+
+const normalizeLanguages = (raw) => {
+  const arr = ensureArray(raw);
+  const toNum = (v) => {
+    const n = Number(String(v || "").replace(/[^\d.-]/g, ""));
+    if (Number.isNaN(n)) return "";
+    return Math.max(0, Math.min(100, Math.round(n)));
+  };
+  return (arr.length ? arr : [emptyLang()]).map((l) => ({
+    language: l.language || l.name || "",
+    proficiency: l.proficiency === "" || l.proficiency === undefined ? "" : toNum(l.proficiency),
+  }));
+};
 
 // ---------- Small UI Components ----------
 const TextAction = ({ title, onPress, color = "#2563eb" }) => (
@@ -132,12 +156,13 @@ export default function EditResumeScreen({ initialData, onBack }) {
     phone: "",
     address: "",
     summary: "",
-    skills: "",
-    profile: "", // <-- base64 data uri
+    skills: "",          // semicolon-delimited in UI
+    profile: "",         // base64 data uri
     education: [emptyEdu()],
     experience: [emptyExp()],
     projects: [emptyProj()],
     certifications: [emptyCert()],
+    languages: [emptyLang()], // <-- new
   });
 
   // --- Load Data ---
@@ -146,15 +171,18 @@ export default function EditResumeScreen({ initialData, onBack }) {
       name: d.name || "",
       title: d.title || "",
       email: d.email || user?.email || "",
+      git: d.git || "",
+      linkedIn: d.linkedIn || "",
       phone: d.phone || "",
       address: d.address || "",
       summary: d.summary || "",
-      skills: Array.isArray(d.skills) ? d.skills.join(", ") : d.skills || "",
-      profile: d.profile || "", // <-- load profile if exists
+      skills: Array.isArray(d.skills) ? d.skills.join("; ") : d.skills || "",
+      profile: d.profile || "",
       education: normalizeEducation(d.education),
       experience: normalizeExperience(d.experience),
       projects: normalizeProjects(d.projects),
       certifications: normalizeCertifications(d.certifications),
+      languages: normalizeLanguages(d.languages),
     });
   };
 
@@ -190,13 +218,33 @@ export default function EditResumeScreen({ initialData, onBack }) {
 
   const removeProfile = () => setForm((p) => ({ ...p, profile: "" }));
 
+  // helpers
+  const onlyDigits = (s) => String(s || "").replace(/[^\d]/g, "");
+  const clamp0to100 = (n) => Math.max(0, Math.min(100, Number.isFinite(n) ? n : 0));
+
   // --- Save to Firebase ---
   const save = async () => {
     try {
       const payload = {
         ...form,
-        skills: form.skills.split(";").map((s) => s.trim()).filter(Boolean),
+        // split skills by semicolon consistently
+        skills: String(form.skills)
+          .split(";")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        // ensure languages are valid and numeric
+        languages: (form.languages || [])
+          .map((l) => ({
+            language: (l.language || "").trim(),
+            proficiency:
+              l.proficiency === "" || l.proficiency === undefined
+                ? ""
+                : clamp0to100(Number(onlyDigits(l.proficiency))),
+          }))
+          // allow empty item if it's the only one; otherwise drop empties
+          .filter((l, idx, arr) => l.language || l.proficiency !== "" || arr.length === 1),
       };
+
       await update(ref(db, `users/${uid}`), payload);
       Alert.alert("✅ Saved", "Your resume was updated successfully!");
       onBack && onBack();
@@ -255,11 +303,11 @@ export default function EditResumeScreen({ initialData, onBack }) {
 
         <Text style={{ color: "#6b7280", fontSize: 12 }}>{"Note: separate skills by semicolon and use <strong></strong> for Bold"}</Text>
         <Section title="Skills">
-          <InputField multiline value={form.skills} onChangeText={(t) => setForm({ ...form, skills: t })} placeholder="e.g., JavaScript, React" />
+          <InputField multiline value={form.skills} onChangeText={(t) => setForm({ ...form, skills: t })} placeholder="e.g., JavaScript; React; Node.js" />
         </Section>
 
         {/* PROJECTS */}
-        <Text style={{ color: "#6b7280", fontSize: 12 }}>Note: use \n for new lines</Text>
+        <Text style={{ color: "#6b7280", fontSize: 12 }}>Note: use ; for new lines</Text>
         <Section title="Projects">
           {form.projects.map((p, idx) => (
             <View key={idx} style={styles.card}>
@@ -312,6 +360,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
         </Section>
 
         {/* EXPERIENCE */}
+        <Text style={{ color: "#6b7280", fontSize: 12 }}>Note: use ; for new lines</Text>
         <Section title="Experience">
           {form.experience.map((x, idx) => (
             <View key={idx} style={styles.card}>
@@ -484,6 +533,50 @@ export default function EditResumeScreen({ initialData, onBack }) {
           </View>
         </Section>
 
+        {/* LANGUAGES */}
+        <Text style={{ color: "#6b7280", fontSize: 12 }}>Proficiency must be between 0 and 100.</Text>
+        <Section title="Languages">
+          {form?.languages.map((l, idx) => (
+            <View key={idx} style={styles.card}>
+              <RemoveButton
+                onPress={() =>
+                  setForm({ ...form, languages: form.languages.filter((_, i) => i !== idx) })
+                }
+              />
+              <Text style={styles.cardHeader}>Language #{idx + 1}</Text>
+              <InputField
+                label="Language"
+                value={l.language}
+                onChangeText={(t) =>
+                  setForm({
+                    ...form,
+                    languages: form.languages.map((x, i) => (i === idx ? { ...x, language: t } : x)),
+                  })
+                }
+              />
+              <InputField
+                label="Proficiency (0–100)"
+                value={String(l.proficiency)}
+                onChangeText={(t) => {
+                  const digits = t.replace(/[^\d]/g, "");
+                  const n = digits === "" ? "" : Math.max(0, Math.min(100, Number(digits)));
+                  setForm({
+                    ...form,
+                    languages: form.languages.map((x, i) => (i === idx ? { ...x, proficiency: n } : x)),
+                  });
+                }}
+                placeholder="e.g., 85"
+              />
+            </View>
+          ))}
+          <View style={styles.addButtonContainer}>
+            <TextAction
+              title="+ Add Language"
+              onPress={() => setForm({ ...form, languages: [...form.languages, emptyLang()] })}
+            />
+          </View>
+        </Section>
+
         {/* CERTIFICATIONS */}
         <Section title="Certifications">
           {form.certifications.map((c, idx) => (
@@ -627,7 +720,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1e293b",
     marginBottom: 8,
-    paddingRight: 28, // keep header text away from the close button
+    paddingRight: 28,
   },
 
   // Remove on cards
