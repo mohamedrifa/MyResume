@@ -235,8 +235,7 @@ export const resumeTemplate = (data, color) => {
 <head>
   <meta charset="UTF-8" />
   <title>${data.name} — Resume</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
+  <meta name="viewport" content="width=device-width, initial-scale=0.8, user-scalable=no">
   <!-- Minimal, ATS-friendly CSS -->
   <style>
     :root{

@@ -24,7 +24,6 @@ const AppContent = () => {
       <SignupScreen onSwitchToLogin={() => setAuthMode("login")} />
     );
   }
-
   // LOGGED IN: show app screens via conditional rendering (no react-navigation)
   return route === "home" ? (
     <HomeScreen
@@ -34,7 +33,7 @@ const AppContent = () => {
   ) : route === "edit" ? (
     <EditResumeScreen initialData={resumeData} onBack={() => setRoute("home")} />
   ) : (
-    <ViewResumeScreen resume={resumeData} onBack={() => setRoute("home")} />
+    <ViewResumeScreen resume={resumeData} onBack={() => setRoute("home")} navigateToEdit={(data) => { setResumeData(data); setRoute("edit"); }} />
   );
 };
 
