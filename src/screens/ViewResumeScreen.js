@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, Alert, Platform, Modal } from "react-native";
 import { WebView } from "react-native-webview";
-import { ColorPicker, fromHsv } from "react-native-color-picker"; // ← wheel picker
+import ColorPicker from "../components/ColorPicker"; // ⬅️ our custom picker
 // import RNHTMLtoPDF from "react-native-html-to-pdf";
 
 import Button from "../components/Button";
@@ -13,7 +13,7 @@ const ViewResumeScreen = ({ resume, onBack }) => {
   const [color, setColor] = useState("#0b7285");
   const [showPicker, setShowPicker] = useState(false);
 
-  // IMPORTANT: pass color directly (your old "color = {'#0b7285'}" was a bug)
+  // IMPORTANT: pass color directly
   const html = useMemo(() => resumeTemplate(resume, color), [resume, color]);
 
   const generatePDF = async () => {
@@ -72,27 +72,33 @@ const ViewResumeScreen = ({ resume, onBack }) => {
         bounces={false}
       />
 
-      {/* Color Wheel Modal */}
-      <Modal visible={showPicker} transparent animationType="slide" onRequestClose={() => setShowPicker(false)}>
+      {/* Color Picker Modal (custom, no libraries) */}
+      <Modal
+        visible={showPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPicker(false)}
+      >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Choose an accent color</Text>
 
-            {/* Wheel + brightness slider (sliders are hidden by default; set hideSliders={false} if you want them) */}
             <ColorPicker
-              style={{ height: 260, width: "100%" }}
-              defaultColor={color}
-              hideSliders
-              onColorChange={(hsv) => {
-                // convert HSV to hex and update live so the preview updates immediately
-                const hex = fromHsv(hsv);
+              initialColor={color}
+              showAlpha={false}
+              size={260}
+              onChange={({ hex }) => {
                 setColor(hex);
               }}
             />
 
             <View style={styles.modalActions}>
               <Button title="Done" onPress={() => setShowPicker(false)} />
-              <Button title="Reset" onPress={() => setColor("#0b7285")} style={{ backgroundColor: "#6b7280" }} />
+              <Button
+                title="Reset"
+                onPress={() => setColor("#0b7285")}
+                style={{ backgroundColor: "#6b7280" }}
+              />
             </View>
           </View>
         </View>
