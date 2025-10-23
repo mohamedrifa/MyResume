@@ -1,5 +1,4 @@
 // src/utils/pdfTemplate.js
-// src/utils/pdfTemplate.js
 export const resumeTemplate = (data, color) => {
 
   const isGit = () => {

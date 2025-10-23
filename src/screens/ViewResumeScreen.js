@@ -9,13 +9,17 @@ import {
   Modal,
   Pressable,
   SafeAreaView,
+  PermissionsAndroid,
   StatusBar,
   ActivityIndicator,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import ColorPicker from "../components/ColorPicker";
 import Button from "../components/Button";
-import { resumeTemplate } from "../utils/pdfTemplate";
+import { resumeTemplate } from "../utils/resumeTemplate";
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import Share from 'react-native-share';
+import RNFS from 'react-native-fs';
 
 const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
   const [loading, setLoading] = useState(false);
@@ -24,29 +28,42 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
 
   const html = useMemo(() => resumeTemplate(resume, color), [resume, color]);
 
-  const generatePDF = async () => {
-    try {
-      setLoading(true);
+  const requestStoragePermission = async () => {
+    if (Platform.OS === 'android' && Platform.Version < 30) {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return true; // For Android 11+ (Scoped Storage)
+  };
 
-      const fileName = `Resume_${(resume?.name || "profile")
+  const generatePDF = async () => {
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      console.log('Storage permission denied');
+      return;
+    }
+    const customPath = `${RNFS.ExternalStorageDirectoryPath}/Documents`; 
+    const fileName = `Resume_${(resume?.name || "profile")
         .replace(/\s+/g, "_")
         .replace(/[^\w\-]/g, "")}`;
-
-      // const pdfOptions = {
-      //   html,
-      //   fileName,
-      //   base64: false,
-      //   directory: Platform.OS === "android" ? "Downloads" : "Documents",
-      // };
-      // const { filePath } = await RNHTMLtoPDF.convert(pdfOptions);
-
-      setLoading(false);
-      const filePath = undefined; // remove when RNHTMLtoPDF is enabled
-      Alert.alert("PDF generated", `Saved to:\n${filePath ?? "(unknown path)"}`);
-    } catch (err) {
-      setLoading(false);
-      Alert.alert("PDF error", err?.message || "Failed to generate PDF");
+    const dirExists = await RNFS.exists(customPath);
+    if (!dirExists) {
+      await RNFS.mkdir(customPath);
     }
+    const options = {
+      html: html,
+      fileName: fileName,
+      pageSize: 'A4',
+    };
+    const file = await RNHTMLtoPDF.convert(options);
+    const originalPath = file.filePath;
+    const newFilePath = `${customPath}/${fileName}.pdf`;
+    await RNFS.moveFile(originalPath, newFilePath);
+    Alert.alert('PDF Saved', `Location: ${customPath}`);
+    setPdfPath(newFilePath);
+    return newFilePath;
   };
 
   const goToEdit = () => navigateToEdit?.(resume);
@@ -91,7 +108,7 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
               accessibilityLabel="Edit resume"
               hitSlop={8}
             >
-              <Text style={styles.iconText}>✏️</Text>
+              <Text style={styles.iconText}>Edit</Text>
             </Pressable>
 
             <Button title="Pick color" onPress={() => setShowPicker(true)} />
@@ -130,10 +147,8 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
           accessibilityLabel="Save as PDF"
           hitSlop={6}
         >
-          <Text style={styles.fabIcon}>⤓</Text>
           <Text style={styles.fabLabel}>Save as PDF</Text>
         </Pressable>
-
         {/* Loading overlay */}
         {loading && (
           <View style={styles.loadingOverlay} pointerEvents="none">
