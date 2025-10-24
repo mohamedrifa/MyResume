@@ -9,24 +9,34 @@ import {
   Modal,
   Pressable,
   SafeAreaView,
-  PermissionsAndroid,
   StatusBar,
   ActivityIndicator,
+  AppState,
+  ToastAndroid,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import ColorPicker from "../components/ColorPicker";
 import Button from "../components/Button";
 import { resumeTemplate } from "../utils/resumeTemplate";
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
-import Share from 'react-native-share';
-import RNFS from 'react-native-fs';
+import Share from "react-native-share";
+import RNFS from "react-native-fs";
+import RNHTMLtoPDF from "react-native-html-to-pdf";
 
 const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
   const [loading, setLoading] = useState(false);
   const [color, setColor] = useState("#0b7285");
   const [showPicker, setShowPicker] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const [pdfPath, setPdfPath] = useState(null);
 
   const html = useMemo(() => resumeTemplate(resume, color), [resume, color]);
+  const jobName = useMemo(
+    () =>
+      `Resume_${(resume?.name || "profile")
+        .replace(/\s+/g, "_")
+        .replace(/[^\w\-]/g, "")}`,
+    [resume?.name]
+  );
 
   const requestStoragePermission = async () => {
     if (Platform.OS === 'android' && Platform.Version < 30) {
@@ -35,42 +45,70 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     }
-    return true; // For Android 11+ (Scoped Storage)
+    return true;
   };
 
-  const generatePDF = async () => {
+  const handleSaveAsPdf = async () => {
     const hasPermission = await requestStoragePermission();
     if (!hasPermission) {
       console.log('Storage permission denied');
       return;
     }
     const customPath = `${RNFS.ExternalStorageDirectoryPath}/Documents`; 
-    const fileName = `Resume_${(resume?.name || "profile")
-        .replace(/\s+/g, "_")
-        .replace(/[^\w\-]/g, "")}`;
     const dirExists = await RNFS.exists(customPath);
     if (!dirExists) {
       await RNFS.mkdir(customPath);
     }
     const options = {
       html: html,
-      fileName: fileName,
+      fileName: jobName,
       pageSize: 'A4',
     };
     const file = await RNHTMLtoPDF.convert(options);
     const originalPath = file.filePath;
-    const newFilePath = `${customPath}/${fileName}.pdf`;
+    const newFilePath = `${customPath}/${jobName}.pdf`;
     await RNFS.moveFile(originalPath, newFilePath);
     Alert.alert('PDF Saved', `Location: ${customPath}`);
     setPdfPath(newFilePath);
     return newFilePath;
   };
 
+  const cachePDF = async () => {
+    const customPath = `${RNFS.CachesDirectoryPath}/Documents`; 
+    const dirExists = await RNFS.exists(customPath);
+    if (!dirExists) {
+      await RNFS.mkdir(customPath);
+    }
+    const options = {
+      html: html,
+      fileName: jobName,
+      pageSize: 'A4',
+      directory: customPath,
+    };
+    const file = await RNHTMLtoPDF.convert(options);
+    console.log('Cached PDF at:', file.filePath);
+    setPdfPath(file.filePath);
+    return file.filePath;
+  };
+
+  const handleSharePdf = async () => {
+    let path = pdfPath;
+    console.log('Sharing PDF, current path:', path);
+    if (!pdfPath) {
+      console.log('No cached PDF found, generating new one for sharing.');
+      path = await cachePDF();
+    }
+    if (path) {
+      console.log('Opening share dialog for PDF at:', path);
+      await Share.open({ url: `file://${path}` });
+    }
+  };
+
   const goToEdit = () => navigateToEdit?.(resume);
 
   // helpful deriveds
   const initials =
-    (resume?.name || "Your Name")
+    (resume?.name || "Name")
       .split(" ")
       .map((p) => p[0])
       .slice(0, 2)
@@ -136,7 +174,7 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
 
         {/* Extended FAB */}
         <Pressable
-          onPress={generatePDF}
+          onPress={() => setShowActions(true)}
           disabled={loading}
           style={({ pressed }) => [
             styles.fab,
@@ -144,17 +182,18 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
             loading && { opacity: 0.65 },
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Save as PDF"
+          accessibilityLabel="Share or Save as PDF"
           hitSlop={6}
         >
-          <Text style={styles.fabLabel}>Save as PDF</Text>
+          <Text style={styles.fabLabel}>Share / Save as PDF</Text>
         </Pressable>
+
         {/* Loading overlay */}
         {loading && (
           <View style={styles.loadingOverlay} pointerEvents="none">
             <View style={styles.loadingCard}>
               <ActivityIndicator size="small" />
-              <Text style={styles.loadingText}>Generating PDF…</Text>
+              <Text style={styles.loadingText}>Preparing…</Text>
             </View>
           </View>
         )}
@@ -199,6 +238,44 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
                 />
               </View>
             </View>
+          </View>
+        </Modal>
+
+        {/* ACTION SHEET: Share or Save */}
+        <Modal
+          visible={showActions}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowActions(false)}
+        >
+          <Pressable style={styles.sheetBackdrop} onPress={() => setShowActions(false)}>
+            <View />
+          </Pressable>
+          <View style={styles.sheetCard}>
+            <Text style={styles.sheetTitle}>What would you like to do?</Text>
+            <View style={styles.sheetButtons}>
+              <Pressable
+                onPress={handleSharePdf}
+                style={({ pressed }) => [styles.sheetBtn, pressed && styles.pressed]}
+                android_ripple={{ color: "#E5E7EB" }}
+              >
+                <Text style={styles.sheetBtnText}>Share as PDF</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSaveAsPdf}
+                style={({ pressed }) => [styles.sheetBtn, pressed && styles.pressed]}
+                android_ripple={{ color: "#E5E7EB" }}
+              >
+                <Text style={styles.sheetBtnText}>Save as PDF</Text>
+              </Pressable>
+            </View>
+            <Pressable
+              onPress={() => setShowActions(false)}
+              style={({ pressed }) => [styles.sheetCancel, pressed && styles.pressed]}
+              android_ripple={{ color: "#E5E7EB" }}
+            >
+              <Text style={styles.sheetCancelText}>Cancel</Text>
+            </Pressable>
           </View>
         </Modal>
       </View>
@@ -325,7 +402,7 @@ const styles = StyleSheet.create({
   },
   loadingText: { fontWeight: "600" },
 
-  /* Modal */
+  /* Color Picker Modal */
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -362,6 +439,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalActions: { flexDirection: "row", gap: 8, marginTop: 12 },
+
+  /* Action sheet */
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  sheetCard: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#fff",
+    padding: 16,
+    paddingBottom: 24,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    ...SHADOW,
+  },
+  sheetTitle: { fontSize: 16, fontWeight: "800", marginBottom: 12 },
+  sheetButtons: { gap: 8 },
+  sheetBtn: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#E5E7EB",
+  },
+  sheetBtnText: { fontSize: 15, fontWeight: "600", textAlign: "center" },
+  sheetCancel: {
+    marginTop: 10,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#E5E7EB",
+  },
+  sheetCancelText: { fontSize: 15, fontWeight: "600", textAlign: "center", color: "#6b7280" },
 });
 
 export default ViewResumeScreen;

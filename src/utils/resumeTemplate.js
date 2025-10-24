@@ -230,99 +230,85 @@ export const resumeTemplate = (data, color) => {
 
   return `
   <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>${data.name} — Resume</title>
-  <meta name="viewport" content="width=device-width, initial-scale=0.8, user-scalable=no">
-  <!-- Minimal, ATS-friendly CSS -->
-  <style>
-    :root{
-      --ink:#111;
-      --muted:#444;
-      --accent:${color};
-      --meter-bg:#e5e7eb;
-    }
-    *{box-sizing:border-box}
-    html,body{
-      margin:0;padding:0;
-      background:#fff;
-      color:var(--ink);
-      font:15px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,Helvetica,sans-serif;
-    }
-    main{
-      max-width:820px;
-      margin:28px auto;
-      padding:0 18px;
-    }
-    h1{font-size:28px;letter-spacing:.3px;color:var(--accent);margin:0 0 6px 0;text-transform:uppercase}
-    h2{font-size:17px;color:var(--accent);margin:18px 0 6px 0;letter-spacing:.2px}
-    h3{font-size:15px;margin:0}
-    p{margin:6px 0 0 0}
-    ul{margin:6px 0 0 18px;padding:0}
-    li{margin:3px 0}
-    hr{border:0;border-top:2px solid var(--accent);margin:14px 0}
-    .header{
-      display:flex;
-      flex-wrap:wrap;
-      align-items:center;
-      justify-content:center;
-      ${headerStyle}
-      gap:20px;
-    }
-    .photo{
-      flex-shrink:0;
-      width:110px;
-      height:110px;
-      border-radius:50%;
-      overflow:hidden;
-    }
-    .photo img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-    .header-text{
-      flex:1 1 260px;
-    }
-    .subtle{color:var(--muted)}
-    .contact{margin-top:6px;font-size:14px;line-height:1.4}
-    .contact a{color:var(--accent);text-decoration:none}
-    .block{margin:10px 0 12px 0}
-    .row-top{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;justify-content:space-between}
-    .where-when{font-size:14px;color:var(--muted)}
-    .pilllist{margin:6px 0 0 0;display:flex;flex-wrap:wrap;gap:6px}
-    .pill{border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-size:13px}
-    address{font-style:normal}
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>${data.name} — Resume</title>
+    <meta name="viewport" content="width=device-width, initial-scale=0.8, user-scalable=no">
+    <style>
+      :root{
+        --ink:#111;
+        --muted:#444;
+        --accent:${color};
+        --meter-bg:#e5e7eb;
+      }
+      *{box-sizing:border-box;margin:0;padding:0;}
+      html,body{
+        background:#fff;
+        color:var(--ink);
+        font:14px/1.45 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,Helvetica,sans-serif;
+      }
 
-    /* Languages */
-    .lang-list{display:flex;flex-direction:column;gap:10px;margin-top:6px}
-    .lang-item{}
-    .lang-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-    .lang-name{font-weight:600}
-    .lang-pct{font-size:13px;color:var(--muted)}
-    .meter{
-      width:100%;
-      height:8px;
-      background:var(--meter-bg);
-      border-radius:6px;
-      overflow:hidden;
-    }
-    .meter-bar{
-      height:100%;
-      background:var(--accent);
-      width:0%;
-      transition:width .2s ease;
-    }
+      /* --- key change: smaller outer margin for PDF --- */
+      main{
+        max-width:800px;
+        margin:0 auto;
+        padding:10px 10px; /* tighter padding for A4 fit */
+      }
 
-    /* Print adjustments */
-    @media print{
-      main{margin:0;padding:0}
-      a{color:inherit;text-decoration:none}
-      .pill{border-color:#bbb}
-    }
-  </style>
+      h1{font-size:26px;letter-spacing:.3px;color:var(--accent);margin-bottom:4px;text-transform:uppercase}
+      h2{font-size:16px;color:var(--accent);margin:14px 0 6px;letter-spacing:.2px}
+      h3{font-size:14px;margin:0}
+      p{margin:4px 0}
+      ul{margin:4px 0 0 18px;padding:0}
+      li{margin:2px 0}
+      hr{border:0;border-top:2px solid var(--accent);margin:10px 0}
+
+      .header{
+        display:flex;
+        flex-wrap:wrap;
+        align-items:center;
+        justify-content:center;
+        text-align:${data.profile && data.profile.trim() !== "" ? "left" : "center"};
+        gap:16px;
+      }
+      .photo{
+        flex-shrink:0;
+        width:95px;
+        height:95px;
+        border-radius:50%;
+        overflow:hidden;
+      }
+      .photo img{
+        width:100%;height:100%;object-fit:cover;display:block;
+      }
+      .header-text{flex:1 1 250px;}
+      .subtle{color:var(--muted)}
+      .contact{margin-top:4px;font-size:13px;line-height:1.3}
+      .contact a{color:var(--accent);text-decoration:none}
+      .block{margin:6px 0 10px}
+      .row-top{display:flex;gap:8px;flex-wrap:wrap;align-items:baseline;justify-content:space-between}
+      .where-when{font-size:13px;color:var(--muted)}
+      address{font-style:normal}
+
+      /* Language bars (unchanged) */
+      .lang-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+      .lang-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+      .lang-name{font-weight:600}
+      .lang-pct{font-size:12px;color:var(--muted)}
+      .meter{width:100%;height:6px;background:var(--meter-bg);border-radius:6px;overflow:hidden;}
+      .meter-bar{height:100%;background:var(--accent);width:0%;transition:width .2s ease;}
+
+      /* Print layout: set true page margins for A4 */
+      @page {
+        size: A4;
+        margin: 10mm 0mm; /* <--- smaller print margin */
+      }
+      @media print{
+        main{margin:0;padding:0;}
+        a{color:inherit;text-decoration:none}
+      }
+    </style>
 </head>
 <body>
 <main role="main" aria-label="Resume">
