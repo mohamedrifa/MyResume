@@ -1,5 +1,5 @@
 // src/screens/ViewResumeScreen.js
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useContext } from "react";
 import {
   View,
   Text,
@@ -11,8 +11,6 @@ import {
   SafeAreaView,
   StatusBar,
   ActivityIndicator,
-  AppState,
-  ToastAndroid,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import ColorPicker from "../components/ColorPicker";
@@ -21,10 +19,15 @@ import { resumeTemplate } from "../utils/resumeTemplate";
 import Share from "react-native-share";
 import RNFS from "react-native-fs";
 import RNHTMLtoPDF from "react-native-html-to-pdf";
+import { db } from "../services/firebaseConfig";
+import { ref, set } from "firebase/database";
+import { AuthContext } from "../context/AuthContext";
 
-const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
+const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
+  const { user } = useContext(AuthContext);
+  const uid = user?.uid;
   const [loading, setLoading] = useState(false);
-  const [color, setColor] = useState("#0b7285");
+  const [color, setColor] = useState(resume.resumeColor || "#0b7285");
   const [showPicker, setShowPicker] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [pdfPath, setPdfPath] = useState(null);
@@ -102,6 +105,10 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
       await Share.open({ url: `file://${path}` });
     }
   };
+  const colorChange = async () => {
+    setShowPicker(false);
+    await set(ref(db, `users/${uid}/resumeColor`), color);
+  }
 
   const goToEdit = () => navigateToEdit?.(resume);
 
@@ -137,6 +144,11 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
           </View>
 
           <View style={styles.actions}>
+            <Button
+              title="Back"
+              onPress={onBack}
+              style={{ backgroundColor: "#6b7280" }}
+            />
             <Pressable
               onPress={goToEdit}
               style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
@@ -150,12 +162,6 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
 
             <Button title="Pick color" onPress={() => setShowPicker(true)} />
             <View style={[styles.colorDot, { backgroundColor: color }]} />
-
-            <Button
-              title="Back"
-              onPress={onBack}
-              style={{ backgroundColor: "#6b7280" }}
-            />
           </View>
         </View>
 
@@ -229,10 +235,10 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
               </View>
 
               <View style={styles.modalActions}>
-                <Button title="Done" onPress={() => setShowPicker(false)} />
+                <Button title="Done" onPress={() => colorChange()} />
                 <Button
                   title="Reset"
-                  onPress={() => setColor("#0b7285")}
+                  onPress={() => setColor(resume.resumeColor || "#0b7285")}
                   style={{ backgroundColor: "#6b7280" }}
                 />
               </View>

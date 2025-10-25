@@ -227,12 +227,10 @@ export default function EditResumeScreen({ initialData, onBack }) {
     try {
       const payload = {
         ...form,
-        // split skills by semicolon consistently
         skills: String(form.skills)
           .split(";")
           .map((s) => s.trim())
           .filter(Boolean),
-        // ensure languages are valid and numeric
         languages: (form.languages || [])
           .map((l) => ({
             language: (l.language || "").trim(),
@@ -241,7 +239,6 @@ export default function EditResumeScreen({ initialData, onBack }) {
                 ? ""
                 : clamp0to100(Number(onlyDigits(l.proficiency))),
           }))
-          // allow empty item if it's the only one; otherwise drop empties
           .filter((l, idx, arr) => l.language || l.proficiency !== "" || arr.length === 1),
       };
 
