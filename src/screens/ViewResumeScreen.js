@@ -83,7 +83,6 @@ const ViewResumeScreen = ({ resume, onBack, onEdit, navigateToEdit }) => {
       html: html,
       fileName: jobName,
       pageSize: 'A4',
-      directory: customPath,
     };
     const file = await RNHTMLtoPDF.convert(options);
     console.log('Cached PDF at:', file.filePath);
