@@ -20,6 +20,7 @@ import {
 import { WebView } from "react-native-webview";
 import ColorPicker from "../components/ColorPicker";
 import Button from "../components/Button";
+import ProfileIcon from "../components/ProfileIcon";
 import { resumeTemplate } from "../utils/resumeTemplate";
 import Share from "react-native-share";
 import RNFS from "react-native-fs";
@@ -28,17 +29,7 @@ import { db } from "../services/firebaseConfig";
 import { ref, set } from "firebase/database";
 import { AuthContext } from "../context/AuthContext";
 
-/**
- * ViewResumeScreen
- * - Calm “Neat” theme
- * - Dark mode aware
- * - Safer file saving across Android/iOS
- * - Clearer actions (Edit / Color / Share / Save)
- * - Stronger a11y labels & hitSlop
- * - Defensive error handling and loading states
- */
-
-const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
+const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile }) => {
   const { user } = useContext(AuthContext);
   const uid = user?.uid;
   const scheme = useColorScheme();
@@ -77,9 +68,7 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
   const requestStoragePermission = useCallback(async () => {
     try {
       if (Platform.OS !== "android") return true;
-      // Android 10+ doesn’t need WRITE_EXTERNAL_STORAGE for app-scoped + share flows
       if (Platform.Version >= 29) return true;
-
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
       );
@@ -91,15 +80,12 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
 
   const getPreferredSaveDir = useCallback(() => {
     if (Platform.OS === "ios") {
-      // App-documents is safest; user can share or Files-app will show under app container.
       return RNFS.DocumentDirectoryPath;
     }
     // ANDROID
     if (Platform.Version >= 29) {
-      // Downloads is user-visible without legacy permissions
       return RNFS.DownloadDirectoryPath || RNFS.DocumentDirectoryPath;
     }
-    // Older android — fall back to ExternalStorage/Documents if available
     return `${RNFS.ExternalStorageDirectoryPath}/Documents`;
   }, []);
 
@@ -123,7 +109,6 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
       base64: false,
     };
     const file = await RNHTMLtoPDF.convert(options);
-    // Move where we want it (if provided)
     if (dirOverride) {
       const newPath = `${dirOverride}/${jobName}.pdf`;
       try {
@@ -133,7 +118,6 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
         await RNFS.moveFile(file.filePath, newPath);
         return newPath;
       } catch (err) {
-        // fallback: keep original file if move fails
         console.log("Move failed; keeping original:", err);
         return file.filePath;
       }
@@ -203,7 +187,6 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
       });
     } catch (e) {
       if (e?.message?.includes("User did not share")) {
-        // user cancelled—no alert
       } else {
         console.log("Share error:", e);
         Alert.alert("Couldn’t share PDF", "Please try again.");
@@ -258,20 +241,10 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
                 </Text>
               )}
             </View>
-
-            {resume?.profile ? (
-              <Image
-                source={{ uri: resume.profile }}
-                resizeMode="cover"
-                style={styles.avatar}
-                accessible
-                accessibilityLabel="Profile photo"
-              />
-            ) : (
-              <View style={[styles.avatar, { backgroundColor: color }]}>
-                <Text style={styles.avatarText}>{initials}</Text>
-              </View>
-            )}
+            <ProfileIcon
+              resume={resume}
+              onPress={() => navigateToProfile()}
+            />
           </View>
 
           {/* quick actions */}

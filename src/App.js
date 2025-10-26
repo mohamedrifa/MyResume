@@ -7,6 +7,7 @@ import SignupScreen from "./screens/SignupScreen";
 import HomeScreen from "./screens/HomeScreen";
 import EditResumeScreen from "./screens/EditResumeScreen";
 import ViewResumeScreen from "./screens/ViewResumeScreen";
+import ProfileScreen from "./screens/ProfileScreen";
 
 const AppContent = () => {
   const { user, initializing } = useContext(AuthContext);
@@ -29,11 +30,14 @@ const AppContent = () => {
     <HomeScreen
       navigateToEdit={(data) => { setResumeData(data); setRoute("edit"); }}
       navigateToView={(data) => { setResumeData(data); setRoute("view"); }}
+      navigateToProfile={() => setRoute("profile")}
     />
   ) : route === "edit" ? (
-    <EditResumeScreen initialData={resumeData} onBack={() => setRoute("home")} />
+    <EditResumeScreen initialData={resumeData} onBack={() => setRoute("home")} navigateToProfile={() => setRoute("profile")} />
+  ) : route === "profile"? (
+    <ProfileScreen onBack={() => setRoute("home")} />
   ) : (
-    <ViewResumeScreen resume={resumeData} onBack={() => setRoute("home")} navigateToEdit={(data) => { setResumeData(data); setRoute("edit"); }} />
+    <ViewResumeScreen resume={resumeData} onBack={() => setRoute("home")} navigateToEdit={(data) => { setResumeData(data); setRoute("edit"); }} navigateToProfile={() => setRoute("profile")} />
   );
 };
 
