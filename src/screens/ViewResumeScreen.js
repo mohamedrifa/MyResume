@@ -1,7 +1,8 @@
 // src/screens/ViewResumeScreen.js
-import React, { useMemo, useState, useContext } from "react";
+import React, { useMemo, useState, useContext, useCallback } from "react";
 import {
   View,
+  Image,
   Text,
   StyleSheet,
   Alert,
@@ -11,6 +12,10 @@ import {
   SafeAreaView,
   StatusBar,
   ActivityIndicator,
+  TouchableOpacity,
+  useColorScheme,
+  PermissionsAndroid,
+  ToastAndroid,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import ColorPicker from "../components/ColorPicker";
@@ -23,9 +28,23 @@ import { db } from "../services/firebaseConfig";
 import { ref, set } from "firebase/database";
 import { AuthContext } from "../context/AuthContext";
 
+/**
+ * ViewResumeScreen
+ * - Calm “Neat” theme
+ * - Dark mode aware
+ * - Safer file saving across Android/iOS
+ * - Clearer actions (Edit / Color / Share / Save)
+ * - Stronger a11y labels & hitSlop
+ * - Defensive error handling and loading states
+ */
+
 const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
   const { user } = useContext(AuthContext);
   const uid = user?.uid;
+  const scheme = useColorScheme();
+
+  const THEME = scheme === "dark" ? darkTheme : lightTheme;
+
   const [loading, setLoading] = useState(false);
   const [color, setColor] = useState(resume.resumeColor || "#0b7285");
   const [showPicker, setShowPicker] = useState(false);
@@ -33,6 +52,9 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
   const [pdfPath, setPdfPath] = useState(null);
 
   const html = useMemo(() => resumeTemplate(resume, color), [resume, color]);
+
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   const jobName = useMemo(
     () =>
       `Resume_${(resume?.name || "profile")
@@ -41,132 +63,259 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
     [resume?.name]
   );
 
-  const requestStoragePermission = async () => {
-    if (Platform.OS === 'android' && Platform.Version < 30) {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    }
-    return true;
-  };
-
-  const handleSaveAsPdf = async () => {
-    const hasPermission = await requestStoragePermission();
-    if (!hasPermission) {
-      console.log('Storage permission denied');
-      return;
-    }
-    const customPath = `${RNFS.ExternalStorageDirectoryPath}/Documents`; 
-    const dirExists = await RNFS.exists(customPath);
-    if (!dirExists) {
-      await RNFS.mkdir(customPath);
-    }
-    const options = {
-      html: html,
-      fileName: jobName,
-      pageSize: 'A4',
-    };
-    const file = await RNHTMLtoPDF.convert(options);
-    const originalPath = file.filePath;
-    const newFilePath = `${customPath}/${jobName}.pdf`;
-    await RNFS.moveFile(originalPath, newFilePath);
-    Alert.alert('PDF Saved', `Location: ${customPath}`);
-    setPdfPath(newFilePath);
-    return newFilePath;
-  };
-
-  const cachePDF = async () => {
-    const customPath = `${RNFS.CachesDirectoryPath}/Documents`; 
-    const dirExists = await RNFS.exists(customPath);
-    if (!dirExists) {
-      await RNFS.mkdir(customPath);
-    }
-    const options = {
-      html: html,
-      fileName: jobName,
-      pageSize: 'A4',
-    };
-    const file = await RNHTMLtoPDF.convert(options);
-    console.log('Cached PDF at:', file.filePath);
-    setPdfPath(file.filePath);
-    return file.filePath;
-  };
-
-  const handleSharePdf = async () => {
-    let path = pdfPath;
-    console.log('Sharing PDF, current path:', path);
-    if (!pdfPath) {
-      console.log('No cached PDF found, generating new one for sharing.');
-      path = await cachePDF();
-    }
-    if (path) {
-      console.log('Opening share dialog for PDF at:', path);
-      await Share.open({ url: `file://${path}` });
-    }
-  };
-  const colorChange = async () => {
-    setShowPicker(false);
-    await set(ref(db, `users/${uid}/resumeColor`), color);
-  }
-
-  const goToEdit = () => navigateToEdit?.(resume);
-
-  // helpful deriveds
   const initials =
-    (resume?.name || "Name")
-      .split(" ")
+    (resume?.name || "Your Name")
+      .trim()
+      .split(/\s+/)
       .map((p) => p[0])
       .slice(0, 2)
       .join("")
       .toUpperCase() || "YN";
 
+  /* ---------- Permissions & Paths ---------- */
+
+  const requestStoragePermission = useCallback(async () => {
+    try {
+      if (Platform.OS !== "android") return true;
+      // Android 10+ doesn’t need WRITE_EXTERNAL_STORAGE for app-scoped + share flows
+      if (Platform.Version >= 29) return true;
+
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const getPreferredSaveDir = useCallback(() => {
+    if (Platform.OS === "ios") {
+      // App-documents is safest; user can share or Files-app will show under app container.
+      return RNFS.DocumentDirectoryPath;
+    }
+    // ANDROID
+    if (Platform.Version >= 29) {
+      // Downloads is user-visible without legacy permissions
+      return RNFS.DownloadDirectoryPath || RNFS.DocumentDirectoryPath;
+    }
+    // Older android — fall back to ExternalStorage/Documents if available
+    return `${RNFS.ExternalStorageDirectoryPath}/Documents`;
+  }, []);
+
+  /* ---------- Firebase color store ---------- */
+
+  const persistColor = useCallback(async (nextColor) => {
+    try {
+      await set(ref(db, `users/${uid}/resumeColor`), nextColor);
+    } catch (e) {
+      console.log("Failed to persist color:", e);
+    }
+  }, [uid]);
+
+  /* ---------- PDF helpers ---------- */
+
+  const generatePDF = useCallback(async (dirOverride) => {
+    const options = {
+      html,
+      fileName: jobName,
+      pageSize: "A4",
+      base64: false,
+    };
+    const file = await RNHTMLtoPDF.convert(options);
+    // Move where we want it (if provided)
+    if (dirOverride) {
+      const newPath = `${dirOverride}/${jobName}.pdf`;
+      try {
+        // ensure dir exists
+        const exists = await RNFS.exists(dirOverride);
+        if (!exists) await RNFS.mkdir(dirOverride);
+        await RNFS.moveFile(file.filePath, newPath);
+        return newPath;
+      } catch (err) {
+        // fallback: keep original file if move fails
+        console.log("Move failed; keeping original:", err);
+        return file.filePath;
+      }
+    }
+    return file.filePath;
+  }, [html, jobName]);
+
+  const cachePDF = useCallback(async () => {
+    const cacheDir = `${RNFS.CachesDirectoryPath}/documents`;
+    try {
+      const exists = await RNFS.exists(cacheDir);
+      if (!exists) await RNFS.mkdir(cacheDir);
+      const options = {
+        html,
+        fileName: jobName,
+        pageSize: "A4",
+        directory: "documents",
+      };
+      const file = await RNHTMLtoPDF.convert(options);
+      setPdfPath(file.filePath);
+      return file.filePath;
+    } catch (e) {
+      console.log("Cache PDF error:", e);
+      throw e;
+    }
+  }, [html, jobName]);
+
+  /* ---------- Actions ---------- */
+
+  const handleSaveAsPdf = useCallback(async () => {
+    setLoading(true);
+    try {
+      const hasPermission = await requestStoragePermission();
+      if (!hasPermission) {
+        Alert.alert("Permission needed", "Storage permission is required to save the PDF.");
+        return;
+      }
+      const saveDir = getPreferredSaveDir();
+      const outPath = await generatePDF(saveDir);
+      setPdfPath(outPath);
+
+      if (Platform.OS === "android") {
+        ToastAndroid.show("PDF saved to: " + outPath, ToastAndroid.LONG);
+      } else {
+        Alert.alert("PDF Saved", `Location:\n${outPath}`);
+      }
+    } catch (e) {
+      console.log("Save error:", e);
+      Alert.alert("Couldn’t save PDF", "Please try again.");
+    } finally {
+      setLoading(false);
+      setShowActions(false);
+    }
+  }, [generatePDF, getPreferredSaveDir, requestStoragePermission]);
+
+  const handleSharePdf = useCallback(async () => {
+    setLoading(true);
+    try {
+      let path = pdfPath;
+      if (!path) {
+        path = await cachePDF();
+      }
+      await Share.open({
+        url: `file://${path}`,
+        type: "application/pdf",
+        failOnCancel: false,
+      });
+    } catch (e) {
+      if (e?.message?.includes("User did not share")) {
+        // user cancelled—no alert
+      } else {
+        console.log("Share error:", e);
+        Alert.alert("Couldn’t share PDF", "Please try again.");
+      }
+    } finally {
+      setLoading(false);
+      setShowActions(false);
+    }
+  }, [cachePDF, pdfPath]);
+
+  const handleOpenPicker = useCallback(() => setShowPicker(true), []);
+  const handleClosePicker = useCallback(() => {
+    setShowPicker(false);
+    setColor(resume.resumeColor || "#0b7285");
+  }, [resume.resumeColor]);
+
+  const handleColorDone = useCallback(async () => {
+    setShowPicker(false);
+    await persistColor(color);
+    resume.resumeColor = color;
+  }, [color, persistColor, resume]);
+
+  const goToEdit = useCallback(() => navigateToEdit?.(resume), [navigateToEdit, resume]);
+
+  /* ---------- UI ---------- */
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle={Platform.OS === "ios" ? "dark-content" : "light-content"} />
-      <View style={styles.container}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: THEME.bg }]}>
+      <StatusBar
+        barStyle={scheme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={THEME.headerBg}
+      />
+      <View style={[styles.container, { backgroundColor: THEME.bg }]}>
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.avatarWrap}>
-            <View style={[styles.avatar, { backgroundColor: color }]}>
-              <Text style={styles.avatarText}>{initials}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title} numberOfLines={1}>
+        <View style={[styles.header, { backgroundColor: THEME.headerBg, borderBottomColor: THEME.border }]}>
+          <View style={styles.headerRow}>
+            <Button
+              title="Back"
+              onPress={onBack}
+              style={{ backgroundColor: THEME.mutedBtnBg }}
+              textStyle={{ color: THEME.text }}
+              accessibilityLabel="Go back"
+            />
+
+            <View style={styles.headerCenter}>
+              <Text style={[styles.title, { color: THEME.text }]} numberOfLines={1}>
                 {resume?.name || "Your Name"}
               </Text>
               {!!resume?.title && (
-                <Text style={styles.subtitle} numberOfLines={1}>
+                <Text style={[styles.subtitle, { color: THEME.subtle }]} numberOfLines={1}>
                   {resume.title}
                 </Text>
               )}
             </View>
+
+            {resume?.profile ? (
+              <Image
+                source={{ uri: resume.profile }}
+                resizeMode="cover"
+                style={styles.avatar}
+                accessible
+                accessibilityLabel="Profile photo"
+              />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: color }]}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
           </View>
 
-          <View style={styles.actions}>
-            <Button
-              title="Back"
-              onPress={onBack}
-              style={{ backgroundColor: "#6b7280" }}
-            />
+          {/* quick actions */}
+          <View style={styles.actionsRow}>
             <Pressable
               onPress={goToEdit}
-              style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-              android_ripple={{ color: "#E5E7EB" }}
+              style={({ pressed }) => [
+                styles.iconBtn,
+                { backgroundColor: THEME.card, borderColor: THEME.border },
+                pressed && styles.pressed,
+              ]}
+              android_ripple={{ color: THEME.ripple }}
               accessibilityRole="button"
               accessibilityLabel="Edit resume"
               hitSlop={8}
             >
-              <Text style={styles.iconText}>Edit</Text>
+              <Text style={[styles.iconText, { color: THEME.text }]}>Edit</Text>
             </Pressable>
 
-            <Button title="Pick color" onPress={() => setShowPicker(true)} />
-            <View style={[styles.colorDot, { backgroundColor: color }]} />
+            <View style={{ flex: 1 }} />
+
+            <TouchableOpacity
+              style={[
+                styles.colorDotWrap,
+                { borderColor: THEME.border, backgroundColor: THEME.card },
+              ]}
+              onPress={handleOpenPicker}
+              accessibilityRole="button"
+              accessibilityLabel="Choose accent color"
+            >
+              <View style={[styles.colorDot, { backgroundColor: color }]} />
+              <Text style={{ color: THEME.text, fontWeight: "600" }}>Color</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Preview as a card */}
-        <View style={styles.card}>
+        {/* Preview card */}
+        <View
+          style={[
+            styles.card,
+            SHADOW,
+            { borderColor: THEME.border, backgroundColor: THEME.card },
+          ]}
+        >
           <WebView
             originWhitelist={["*"]}
             source={{ html, baseUrl: "" }}
@@ -174,16 +323,18 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
             javaScriptEnabled
             domStorageEnabled
             bounces={false}
+            automaticallyAdjustContentInsets
           />
         </View>
 
-        {/* Extended FAB */}
+        {/* Main action: share / save */}
         <Pressable
           onPress={() => setShowActions(true)}
           disabled={loading}
           style={({ pressed }) => [
             styles.fab,
-            pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+            { backgroundColor: THEME.primary },
+            pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
             loading && { opacity: 0.65 },
           ]}
           accessibilityRole="button"
@@ -196,14 +347,14 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
         {/* Loading overlay */}
         {loading && (
           <View style={styles.loadingOverlay} pointerEvents="none">
-            <View style={styles.loadingCard}>
+            <View style={[styles.loadingCard, SHADOW, { backgroundColor: THEME.card }]}>
               <ActivityIndicator size="small" />
-              <Text style={styles.loadingText}>Preparing…</Text>
+              <Text style={[styles.loadingText, { color: THEME.text }]}>Preparing…</Text>
             </View>
           </View>
         )}
 
-        {/* Color Picker Modal */}
+        {/* Color Picker Sheet */}
         <Modal
           visible={showPicker}
           transparent
@@ -211,21 +362,25 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
           onRequestClose={() => setShowPicker(false)}
         >
           <View style={styles.modalBackdrop}>
-            <View style={styles.modalCard}>
+            <View style={[styles.modalCard, { backgroundColor: THEME.card }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Choose an accent color</Text>
+                <Text style={[styles.modalTitle, { color: THEME.text }]}>Choose an accent color</Text>
                 <Pressable
-                  onPress={() => setShowPicker(false)}
-                  style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
-                  android_ripple={{ color: "#E5E7EB" }}
+                  onPress={handleClosePicker}
+                  style={({ pressed }) => [
+                    styles.closeBtn,
+                    { backgroundColor: THEME.soft, borderColor: THEME.border },
+                    pressed && styles.pressed,
+                  ]}
+                  android_ripple={{ color: THEME.ripple }}
                   accessibilityRole="button"
                   accessibilityLabel="Close color picker"
                 >
-                  <Text style={{ fontSize: 18 }}>✕</Text>
+                  <Text style={{ fontSize: 18, color: THEME.text }}>✕</Text>
                 </Pressable>
               </View>
 
-              <View style={styles.pickerWrap}>
+              <View style={[styles.pickerWrap, { backgroundColor: THEME.pickerBg }]}>
                 <ColorPicker
                   initialColor={color}
                   showAlpha={false}
@@ -235,18 +390,24 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
               </View>
 
               <View style={styles.modalActions}>
-                <Button title="Done" onPress={() => colorChange()} />
+                <Button title="Done" onPress={handleColorDone} />
                 <Button
                   title="Reset"
-                  onPress={() => setColor(resume.resumeColor || "#0b7285")}
-                  style={{ backgroundColor: "#6b7280" }}
+                  onPress={async () => {
+                    setShowPicker(false);
+                    setColor("#0b7285");
+                    await wait(0);
+                    setShowPicker(true);
+                  }}
+                  style={{ backgroundColor: THEME.mutedBtnBg }}
+                  textStyle={{ color: THEME.text }}
                 />
               </View>
             </View>
           </View>
         </Modal>
 
-        {/* ACTION SHEET: Share or Save */}
+        {/* Action Sheet */}
         <Modal
           visible={showActions}
           transparent
@@ -256,30 +417,45 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
           <Pressable style={styles.sheetBackdrop} onPress={() => setShowActions(false)}>
             <View />
           </Pressable>
-          <View style={styles.sheetCard}>
-            <Text style={styles.sheetTitle}>What would you like to do?</Text>
+
+          <View style={[styles.sheetCard, SHADOW, { backgroundColor: THEME.card }]}>
+            <Text style={[styles.sheetTitle, { color: THEME.text }]}>What would you like to do?</Text>
             <View style={styles.sheetButtons}>
               <Pressable
                 onPress={handleSharePdf}
-                style={({ pressed }) => [styles.sheetBtn, pressed && styles.pressed]}
-                android_ripple={{ color: "#E5E7EB" }}
+                style={({ pressed }) => [
+                  styles.sheetBtn,
+                  { backgroundColor: THEME.soft, borderColor: THEME.border },
+                  pressed && styles.pressed,
+                ]}
+                android_ripple={{ color: THEME.ripple }}
               >
-                <Text style={styles.sheetBtnText}>Share as PDF</Text>
+                <Text style={[styles.sheetBtnText, { color: THEME.text }]}>Share as PDF</Text>
               </Pressable>
+
               <Pressable
                 onPress={handleSaveAsPdf}
-                style={({ pressed }) => [styles.sheetBtn, pressed && styles.pressed]}
-                android_ripple={{ color: "#E5E7EB" }}
+                style={({ pressed }) => [
+                  styles.sheetBtn,
+                  { backgroundColor: THEME.soft, borderColor: THEME.border },
+                  pressed && styles.pressed,
+                ]}
+                android_ripple={{ color: THEME.ripple }}
               >
-                <Text style={styles.sheetBtnText}>Save as PDF</Text>
+                <Text style={[styles.sheetBtnText, { color: THEME.text }]}>Save as PDF</Text>
               </Pressable>
             </View>
+
             <Pressable
               onPress={() => setShowActions(false)}
-              style={({ pressed }) => [styles.sheetCancel, pressed && styles.pressed]}
-              android_ripple={{ color: "#E5E7EB" }}
+              style={({ pressed }) => [
+                styles.sheetCancel,
+                { backgroundColor: THEME.card, borderColor: THEME.border },
+                pressed && styles.pressed,
+              ]}
+              android_ripple={{ color: THEME.ripple }}
             >
-              <Text style={styles.sheetCancelText}>Cancel</Text>
+              <Text style={[styles.sheetCancelText, { color: THEME.subtle }]}>Cancel</Text>
             </Pressable>
           </View>
         </Modal>
@@ -288,46 +464,72 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit }) => {
   );
 };
 
+/* ---------- Theme ---------- */
+
+const lightTheme = {
+  bg: "#F6F7F9",
+  headerBg: "#FFFFFF",
+  card: "#FFFFFF",
+  text: "#0F172A",
+  subtle: "#6B7280",
+  border: "#E5E7EB",
+  soft: "#F3F4F6",
+  mutedBtnBg: "#E5E7EB",
+  ripple: "#E5E7EB",
+  primary: "#2563EB",
+  pickerBg: "#0F172A",
+};
+
+const darkTheme = {
+  bg: "#0B1220",
+  headerBg: "#0F172A",
+  card: "#111827",
+  text: "#F9FAFB",
+  subtle: "#9CA3AF",
+  border: "#1F2937",
+  soft: "#1F2937",
+  mutedBtnBg: "#374151",
+  ripple: "#374151",
+  primary: "#2563EB",
+  pickerBg: "#0B1220",
+};
+
+/* ---------- Styles ---------- */
+
 const SHADOW =
   Platform.OS === "ios"
-    ? {
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowOffset: { width: 0, height: 8 },
-        shadowRadius: 16,
-      }
+    ? { shadowColor: "#000", shadowOpacity: 0.08, shadowOffset: { width: 0, height: 8 }, shadowRadius: 16 }
     : { elevation: 10 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F8FAFC" }, // slate-50
+  safe: { flex: 1 },
   container: { flex: 1 },
 
-  /* Header */
   header: {
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E7EB",
   },
-  avatarWrap: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
+  headerCenter: { flex: 1, alignItems: "flex-end" },
+
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: { color: "#fff", fontWeight: "800" },
   title: { fontSize: 20, fontWeight: "800" },
-  subtitle: { color: "#6b7280", marginTop: 2 },
+  subtitle: { marginTop: 2 },
 
-  actions: {
+  actionsRow: {
     marginTop: 12,
     gap: 8,
     flexDirection: "row",
@@ -335,60 +537,58 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   iconBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F3F4F6",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
   },
-  iconText: { fontSize: 16 },
-  pressed: { opacity: 0.85 },
+  iconText: { fontSize: 16, fontWeight: "700" },
+  pressed: { opacity: 0.9 },
 
-  /* Preview Card */
   card: {
     flex: 1,
     margin: 16,
-    backgroundColor: "#fff",
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
-    ...SHADOW,
   },
-  webview: { flex: 1, backgroundColor: "#fff" },
+  webview: { flex: 1 },
 
+  colorDotWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 10,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   colorDot: {
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    marginHorizontal: 4,
   },
 
-  /* Extended FAB */
   fab: {
     position: "absolute",
     right: 16,
     bottom: 20,
-    minWidth: 164,
-    height: 48,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    backgroundColor: "#2563EB",
+    minWidth: 190,
+    height: 50,
+    paddingHorizontal: 18,
+    borderRadius: 26,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     ...SHADOW,
   },
-  fabIcon: { fontSize: 16, color: "#fff" },
-  fabLabel: { fontSize: 15, color: "#fff", fontWeight: "700" },
+  fabLabel: { fontSize: 15, color: "#fff", fontWeight: "800" },
 
-  /* Loading Overlay */
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
@@ -399,22 +599,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    ...SHADOW,
   },
   loadingText: { fontWeight: "600" },
 
-  /* Color Picker Modal */
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "flex-end",
   },
   modalCard: {
-    backgroundColor: "#fff",
     padding: 16,
     paddingBottom: 20,
     borderTopLeftRadius: 16,
@@ -432,20 +628,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F3F4F6",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
   },
   modalTitle: { fontWeight: "800", fontSize: 16 },
-  pickerWrap: {
-    backgroundColor: "#0F172A", // slate-900
-    borderRadius: 12,
-    padding: 12,
-    alignItems: "center",
-  },
+  pickerWrap: { borderRadius: 12, padding: 12, alignItems: "center" },
   modalActions: { flexDirection: "row", gap: 8, marginTop: 12 },
 
-  /* Action sheet */
   sheetBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -455,33 +643,27 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#fff",
     padding: 16,
     paddingBottom: 24,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    ...SHADOW,
   },
   sheetTitle: { fontSize: 16, fontWeight: "800", marginBottom: 12 },
   sheetButtons: { gap: 8 },
   sheetBtn: {
-    backgroundColor: "#F3F4F6",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
   },
   sheetBtnText: { fontSize: 15, fontWeight: "600", textAlign: "center" },
   sheetCancel: {
     marginTop: 10,
-    backgroundColor: "#fff",
     borderRadius: 12,
     paddingVertical: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
   },
-  sheetCancelText: { fontSize: 15, fontWeight: "600", textAlign: "center", color: "#6b7280" },
+  sheetCancelText: { fontSize: 15, fontWeight: "700", textAlign: "center" },
 });
 
 export default ViewResumeScreen;
