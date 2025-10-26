@@ -13,7 +13,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Modal,
+  StatusBar,
 } from "react-native";
+import { WebView } from "react-native-webview";
 import InputField from "../components/InputField";
 import Button from "../components/Button";
 import { db } from "../services/firebaseConfig";
@@ -22,6 +25,7 @@ import { AuthContext } from "../context/AuthContext";
 import RNFS from "react-native-fs";
 import { launchImageLibrary } from "react-native-image-picker";
 import { getTheme } from "../constants/ColorConstants";
+import { resumeTemplate } from "../utils/resumeTemplate";
 
 /* ---------- helpers / normalizers ---------- */
 const emptyEdu = () => ({ stream: "", from: "", to: "", percentage: "", institute: "" });
@@ -93,14 +97,14 @@ const TextAction = ({ title, onPress, color }) => (
   </TouchableOpacity>
 );
 
-const AppBar = ({ title, onBack, theme }) => (
+const AppBar = ({ title, onBack, onPreview, theme }) => (
   <SafeAreaView style={[styles.appbarSafe, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
     <View style={styles.appbar}>
       <TextAction title={"Back"} onPress={onBack} color={theme.primary} />
       <Text style={[styles.appbarTitle, { color: theme.text }]} numberOfLines={1}>
         {title}
       </Text>
-      <View style={{ width: 60 }} />
+      <TextAction title={"Preview"} onPress={onPreview} color={theme.primary} />
     </View>
   </SafeAreaView>
 );
@@ -162,6 +166,8 @@ export default function EditResumeScreen({ initialData, onBack }) {
 
   const theme = useMemo(() => getTheme(scheme), [scheme]);
 
+  const [showPreview, setShowPreview] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     title: "",
@@ -173,12 +179,25 @@ export default function EditResumeScreen({ initialData, onBack }) {
     summary: "",
     skills: "",
     profile: "",
+    resumeColor: "#0b7285",
     education: [emptyEdu()],
     experience: [emptyExp()],
     projects: [emptyProj()],
     certifications: [emptyCert()],
     languages: [emptyLang()],
   });
+
+  /* Generate preview HTML */
+  const previewHtml = useMemo(() => {
+    const previewData = {
+      ...form,
+      skills: String(form.skills)
+        .split(";")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    };
+    return resumeTemplate(previewData, form.resumeColor || "#0b7285");
+  }, [form]);
 
   /* load */
   const setFromObj = (d = {}) => {
@@ -193,6 +212,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
       summary: d.summary || "",
       skills: Array.isArray(d.skills) ? d.skills.join("; ") : d.skills || "",
       profile: d.profile || "",
+      resumeColor: d.resumeColor || "#0b7285",
       education: normalizeEducation(d.education),
       experience: normalizeExperience(d.experience),
       projects: normalizeProjects(d.projects),
@@ -281,11 +301,11 @@ export default function EditResumeScreen({ initialData, onBack }) {
   /* UI */
   return (
     <View style={[styles.wrapper, { backgroundColor: theme.bg }]}>
-      <AppBar title="Edit Your Resume" onBack={onBack} theme={theme} />
+      <AppBar title="Edit Your Resume" onBack={onBack} onPreview={() => setShowPreview(true)} theme={theme} />
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView
-          contentContainerStyle={[styles.container, { paddingBottom: 120 }]} // extra bottom padding for FAB
+          contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
           keyboardShouldPersistTaps="handled"
         >
           {/* PERSONAL */}
@@ -428,13 +448,63 @@ export default function EditResumeScreen({ initialData, onBack }) {
             ))}
             <AddButton title="+ Add Certification" onPress={() => setForm({ ...form, certifications: [...form.certifications, emptyCert()] })} />
           </Section>
-
-          {/* (removed old footer save button) */}
         </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Floating Save FAB */}
       <FloatingSaveButton onPress={save} theme={theme} />
+
+      {/* Preview Modal */}
+      <Modal
+        visible={showPreview}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPreview(false)}
+      >
+        <SafeAreaView style={[styles.previewContainer, { backgroundColor: theme.bg }]}>
+          <StatusBar
+            barStyle={scheme === "dark" ? "light-content" : "dark-content"}
+            backgroundColor={theme.headerBg}
+          />
+          
+          {/* Preview Header */}
+          <View style={[styles.previewHeader, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
+            <Text style={[styles.previewTitle, { color: theme.text }]}>Resume Preview</Text>
+            <Pressable
+              onPress={() => setShowPreview(false)}
+              style={({ pressed }) => [
+                styles.previewCloseBtn,
+                { backgroundColor: theme.soft, borderColor: theme.border },
+                pressed && { opacity: 0.9 },
+              ]}
+              android_ripple={{ color: theme.ripple }}
+              accessibilityRole="button"
+              accessibilityLabel="Close preview"
+            >
+              <Text style={{ fontSize: 18, color: theme.text }}>✕</Text>
+            </Pressable>
+          </View>
+
+          {/* Preview Content */}
+          <View
+            style={[
+              styles.previewCard,
+              theme.shadow,
+              { borderColor: theme.border, backgroundColor: theme.card },
+            ]}
+          >
+            <WebView
+              originWhitelist={["*"]}
+              source={{ html: previewHtml, baseUrl: "" }}
+              style={styles.webview}
+              javaScriptEnabled
+              domStorageEnabled
+              bounces={false}
+              automaticallyAdjustContentInsets
+            />
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
@@ -533,4 +603,37 @@ const styles = StyleSheet.create({
   },
   fabIcon: { fontSize: 18, marginRight: 8, color: "#ffffff" },
   fabText: { color: "#ffffff", fontWeight: "800", fontSize: 16, letterSpacing: 0.3 },
+
+  /* Preview Modal */
+  previewContainer: {
+    flex: 1,
+  },
+  previewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  previewTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  previewCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  previewCard: {
+    flex: 1,
+    margin: 16,
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  webview: { flex: 1 },
 });

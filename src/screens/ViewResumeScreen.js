@@ -127,15 +127,11 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
   }, [html, jobName]);
 
   const cachePDF = useCallback(async () => {
-    const cacheDir = `${RNFS.CachesDirectoryPath}/documents`;
     try {
-      const exists = await RNFS.exists(cacheDir);
-      if (!exists) await RNFS.mkdir(cacheDir);
       const options = {
         html,
         fileName: jobName,
         pageSize: "A4",
-        directory: "documents",
       };
       const file = await RNHTMLtoPDF.convert(options);
       setPdfPath(file.filePath);
