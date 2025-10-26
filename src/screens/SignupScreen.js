@@ -1,55 +1,171 @@
-// src/screens/SignupScreen.js
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  useColorScheme,
+} from "react-native";
 import InputField from "../components/InputField";
 import Button from "../components/Button";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../services/firebaseConfig";
+import { auth, db } from "../services/firebaseConfig";
 import { ref, set } from "firebase/database";
-import { db } from "../services/firebaseConfig";
 
 const SignupScreen = ({ onSwitchToLogin }) => {
+  const scheme = useColorScheme();
+  const theme =
+    scheme === "dark"
+      ? {
+          bg: "#0B1220",
+          card: "#101826",
+          text: "#F8FAFC",
+          subtle: "#9CA3AF",
+          primary: "#2563EB",
+        }
+      : {
+          bg: "#F6F7F9",
+          card: "#FFFFFF",
+          text: "#0F172A",
+          subtle: "#6B7280",
+          primary: "#2563EB",
+        };
+
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const signup = async () => {
-    if (!email || !password) return Alert.alert("Fill email & password");
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      return Alert.alert("Missing Info", "Please fill in all fields.");
+    }
+    if (password !== confirmPassword) {
+      return Alert.alert("Password Mismatch", "The passwords you entered do not match.");
+    }
+    if (password.length < 6) {
+      return Alert.alert("Weak Password", "Password must be at least 6 characters.");
+    }
+
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      // Set basic profile in realtime DB
+      setLoading(true);
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      // Create a base user record in Realtime Database
       await set(ref(db, `users/${cred.user.uid}`), {
-        name: name || "",
-        email,
+        name: name.trim(),
+        email: email.trim(),
         phone: "",
         title: "",
         summary: "",
         skills: [],
         experience: [],
-        education: []
+        education: [],
+        projects: [],
+        certifications: [],
+        languages: [],
       });
+      Alert.alert("Welcome!", "Account created successfully.");
     } catch (err) {
-      Alert.alert("Signup error", err.message);
+      let msg = "Could not create account. Please try again.";
+      if (err.code === "auth/email-already-in-use") msg = "This email is already in use.";
+      if (err.code === "auth/invalid-email") msg = "Please enter a valid email address.";
+      if (err.code === "auth/weak-password") msg = "Password should be at least 6 characters.";
+      Alert.alert("Signup Failed", msg);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create account</Text>
-      <InputField label="Full name" value={name} onChangeText={setName} placeholder="Mohamed Rifayath" />
-      <InputField label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
-      <InputField label="Password" value={password} onChangeText={setPassword} placeholder="Password" />
-      <Button title="Sign up" onPress={signup} />
-      <Text style={{textAlign:"center", marginTop:12}}>
-        Already have an account? <Text style={{color:"#2563eb"}} onPress={onSwitchToLogin}>Login</Text>
-      </Text>
-    </View>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.bg }]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <View style={[styles.card, { backgroundColor: theme.card }]}>
+        <Text style={[styles.title, { color: theme.text }]}>Create account</Text>
+        <Text style={[styles.subtitle, { color: theme.subtle }]}>
+          Sign up to get started with your resume
+        </Text>
+
+        <InputField
+          label="Full Name"
+          value={name}
+          onChangeText={setName}
+          placeholder="Your full name"
+          theme={theme}
+        />
+        <InputField
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          theme={theme}
+        />
+        <InputField
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Password"
+          secureTextEntry = {true}
+          theme={theme}
+        />
+
+        <InputField
+          label="Confirm Password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          placeholder="Confirm Password"
+          secureTextEntry = {true}
+          theme={theme}
+        />
+
+        <Button
+          title={loading ? "Creating account..." : "Sign Up"}
+          onPress={signup}
+          disabled={loading}
+        />
+
+        {loading && (
+          <ActivityIndicator
+            style={{ marginTop: 8 }}
+            size="small"
+            color={theme.primary}
+          />
+        )}
+
+        <TouchableOpacity
+          onPress={onSwitchToLogin}
+          style={{ marginTop: 20, alignSelf: "center" }}
+        >
+          <Text style={{ color: theme.primary, fontWeight: "600" }}>
+            Already have an account? Log in
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex:1, padding: 20, justifyContent: "center" },
-  title: { fontSize: 28, fontWeight: "800", marginBottom: 20 }
+  container: { flex: 1, justifyContent: "center", padding: 20 },
+  card: {
+    borderRadius: 16,
+    padding: 24,
+    elevation: 3,
+    shadowColor: "#00000020",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  title: { fontSize: 28, fontWeight: "800", marginBottom: 6 },
+  subtitle: { fontSize: 14, marginBottom: 20 },
 });
 
 export default SignupScreen;
