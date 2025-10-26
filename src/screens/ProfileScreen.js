@@ -20,41 +20,13 @@ import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, signOu
 import Button from "../components/Button";
 import InputField from "../components/InputField";
 import Loader from "../components/Loader";
+import { getTheme } from "../constants/ColorConstants";
 
 const ProfileScreen = ({ onBack }) => {
   const scheme = useColorScheme();
   const { user } = useContext(AuthContext);
   const uid = user?.uid;
-
-  const theme = useMemo(
-    () =>
-      scheme === "dark"
-        ? {
-            bg: "#0B1220",
-            card: "#101826",
-            border: "#1C2736",
-            text: "#F8FAFC",
-            subtle: "#9CA3AF",
-            primary: "#2563EB",
-            danger: "#EF4444",
-            avatarBg: "rgba(37,99,235,0.18)",
-            softDangerBg: "#3b0a0a",     // subtle red for dark
-            softDangerText: "#fecaca",
-          }
-        : {
-            bg: "#F6F7F9",
-            card: "#FFFFFF",
-            border: "#E5E7EB",
-            text: "#0F172A",
-            subtle: "#6B7280",
-            primary: "#2563EB",
-            danger: "#EF4444",
-            avatarBg: "rgba(37,99,235,0.12)",
-            softDangerBg: "#FEE2E2",     // light reddish button
-            softDangerText: "#B91C1C",   // deep red text
-          },
-    [scheme]
-  );
+  const theme = useMemo(() => getTheme(scheme), [scheme]);
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);

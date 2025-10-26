@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,25 +15,11 @@ import Button from "../components/Button";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../services/firebaseConfig";
 import { ref, set } from "firebase/database";
+import { getTheme } from "../constants/ColorConstants";
 
 const SignupScreen = ({ onSwitchToLogin }) => {
   const scheme = useColorScheme();
-  const theme =
-    scheme === "dark"
-      ? {
-          bg: "#0B1220",
-          card: "#101826",
-          text: "#F8FAFC",
-          subtle: "#9CA3AF",
-          primary: "#2563EB",
-        }
-      : {
-          bg: "#F6F7F9",
-          card: "#FFFFFF",
-          text: "#0F172A",
-          subtle: "#6B7280",
-          primary: "#2563EB",
-        };
+  const theme = useMemo(() => getTheme(scheme), [scheme]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -164,8 +150,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
   },
-  title: { fontSize: 28, fontWeight: "800", marginBottom: 6 },
-  subtitle: { fontSize: 14, marginBottom: 20 },
+  title: { fontSize: 28, fontWeight: "800", marginBottom: 6, textAlign: 'center' },
+  subtitle: { fontSize: 14, marginBottom: 20, textAlign: 'center' },
 });
 
 export default SignupScreen;

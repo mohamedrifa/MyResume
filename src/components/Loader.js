@@ -1,7 +1,11 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Animated, StyleSheet, Text } from 'react-native';
+import React, { useRef, useEffect, useMemo } from 'react';
+import { View, Animated, StyleSheet, Text, useColorScheme } from 'react-native';
+import { getTheme } from "../constants/ColorConstants";
 
 const Loader = ({ message = '' }) => {
+
+  const scheme = useColorScheme();
+  const theme = useMemo(() => getTheme(scheme), [scheme]);
   
   const bounce1 = useRef(new Animated.Value(0)).current;
   const bounce2 = useRef(new Animated.Value(0)).current;
@@ -34,12 +38,12 @@ const Loader = ({ message = '' }) => {
   return (
     <View style={styles.container}>
       <View style={styles.dotsContainer}>
-        <Animated.View style={[styles.dot, { transform: [{ translateY: bounce1 }] }]} />
-        <Animated.View style={[styles.dot, { transform: [{ translateY: bounce2 }] }]} />
-        <Animated.View style={[styles.dot, { transform: [{ translateY: bounce3 }] }]} />
+        <Animated.View style={[styles.dot, { transform: [{ translateY: bounce1 }], backgroundColor: theme.loaderBg}]} />
+        <Animated.View style={[styles.dot, { transform: [{ translateY: bounce2 }], backgroundColor: theme.loaderBg }]} />
+        <Animated.View style={[styles.dot, { transform: [{ translateY: bounce3 }], backgroundColor: theme.loaderBg }]} />
       </View>
       {message !== '' && (
-        <Text style={styles.message}>{message}</Text>
+        <Text style={[styles.message, {color: theme.loaderText}]}>{message}</Text>
       )}
     </View>
   );
@@ -59,12 +63,10 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#6c89c7ff',
     marginHorizontal: 6,
   },
   message: {
     fontSize: 16,
-    color: '#ffffffff',
     fontWeight: '500',
   },
 });

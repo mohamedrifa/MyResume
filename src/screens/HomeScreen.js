@@ -18,6 +18,7 @@ import { AuthContext } from "../context/AuthContext";
 import { db } from "../services/firebaseConfig";
 import { ref, onValue } from "firebase/database";
 import Loader from "../components/Loader";
+import { getTheme } from "../constants/ColorConstants";
 
 const HomeScreen = ({ navigateToEdit, navigateToView, navigateToProfile }) => {
   const { user } = useContext(AuthContext);
@@ -26,41 +27,7 @@ const HomeScreen = ({ navigateToEdit, navigateToView, navigateToProfile }) => {
   const [loading, setLoading] = useState(false);
   const uid = user?.uid;
 
-  const theme = useMemo(
-    () =>
-      scheme === "dark"
-        ? {
-            bg: "#0B1220",
-            card: "#101826",
-            cardBorder: "#1C2736",
-            text: "#F8FAFC",
-            subtle: "#9CA3AF",
-            primary: "#2563EB",
-            success: "#10B981",
-            danger: "#EF4444",
-            chipBg: "rgba(148,163,184,0.12)",
-            chipText: "#E5E7EB",
-            divider: "rgba(255,255,255,0.06)",
-            avatarBg: "rgba(37,99,235,0.2)",
-            shadow: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 8 } },
-          }
-        : {
-            bg: "#F6F7F9",
-            card: "#FFFFFF",
-            cardBorder: "#E5E7EB",
-            text: "#0F172A",
-            subtle: "#6B7280",
-            primary: "#2563EB",
-            success: "#10B981",
-            danger: "#EF4444",
-            chipBg: "#F3F4F6",
-            chipText: "#111827",
-            divider: "#E5E7EB",
-            avatarBg: "rgba(37,99,235,0.12)",
-            shadow: { shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-          },
-    [scheme]
-  );
+  const theme = useMemo(() => getTheme(scheme), [scheme]);
 
   useEffect(() => {
     if (!uid) return;
@@ -173,6 +140,7 @@ const HomeScreen = ({ navigateToEdit, navigateToView, navigateToProfile }) => {
       </ScrollView>
 
       {/* Floating Edit */}
+      {!loading &&
       <TouchableOpacity
         onPress={() => navigateToEdit(resume || {})}
         activeOpacity={0.9}
@@ -182,8 +150,9 @@ const HomeScreen = ({ navigateToEdit, navigateToView, navigateToProfile }) => {
       >
         <Text style={styles.fabTxt}>Edit Resume</Text>
       </TouchableOpacity>
+      }
       {loading &&
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0b1220", position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.bg, position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
         <Loader message="Loading your profile..." />
       </View>}
 

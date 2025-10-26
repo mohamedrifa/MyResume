@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,24 +14,11 @@ import InputField from "../components/InputField";
 import Button from "../components/Button";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../services/firebaseConfig";
+import { getTheme } from "../constants/ColorConstants";
 
 const LoginScreen = ({ onSwitchToSignup }) => {
   const scheme = useColorScheme();
-  const theme = scheme === "dark"
-    ? {
-        bg: "#0B1220",
-        card: "#101826",
-        text: "#F8FAFC",
-        subtle: "#9CA3AF",
-        primary: "#2563EB",
-      }
-    : {
-        bg: "#F6F7F9",
-        card: "#FFFFFF",
-        text: "#0F172A",
-        subtle: "#6B7280",
-        primary: "#2563EB",
-      };
+  const theme = useMemo(() => getTheme(scheme), [scheme]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -28,6 +28,7 @@ import RNHTMLtoPDF from "react-native-html-to-pdf";
 import { db } from "../services/firebaseConfig";
 import { ref, set } from "firebase/database";
 import { AuthContext } from "../context/AuthContext";
+import { lightTheme, darkTheme } from "../constants/ColorConstants";
 
 const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile }) => {
   const { user } = useContext(AuthContext);
@@ -166,7 +167,7 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
       }
     } catch (e) {
       console.log("Save error:", e);
-      Alert.alert("Couldn’t save PDF", "Please try again.");
+      Alert.alert("Couldn't save PDF", "Please try again.");
     } finally {
       setLoading(false);
       setShowActions(false);
@@ -189,7 +190,7 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
       if (e?.message?.includes("User did not share")) {
       } else {
         console.log("Share error:", e);
-        Alert.alert("Couldn’t share PDF", "Please try again.");
+        Alert.alert("Couldn't share PDF", "Please try again.");
       }
     } finally {
       setLoading(false);
@@ -285,7 +286,7 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
         <View
           style={[
             styles.card,
-            SHADOW,
+            THEME.shadow,
             { borderColor: THEME.border, backgroundColor: THEME.card },
           ]}
         >
@@ -320,7 +321,7 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
         {/* Loading overlay */}
         {loading && (
           <View style={styles.loadingOverlay} pointerEvents="none">
-            <View style={[styles.loadingCard, SHADOW, { backgroundColor: THEME.card }]}>
+            <View style={[styles.loadingCard, THEME.shadow, { backgroundColor: THEME.card }]}>
               <ActivityIndicator size="small" />
               <Text style={[styles.loadingText, { color: THEME.text }]}>Preparing…</Text>
             </View>
@@ -391,7 +392,7 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
             <View />
           </Pressable>
 
-          <View style={[styles.sheetCard, SHADOW, { backgroundColor: THEME.card }]}>
+          <View style={[styles.sheetCard, THEME.shadow, { backgroundColor: THEME.card }]}>
             <Text style={[styles.sheetTitle, { color: THEME.text }]}>What would you like to do?</Text>
             <View style={styles.sheetButtons}>
               <Pressable
@@ -437,42 +438,7 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
   );
 };
 
-/* ---------- Theme ---------- */
-
-const lightTheme = {
-  bg: "#F6F7F9",
-  headerBg: "#FFFFFF",
-  card: "#FFFFFF",
-  text: "#0F172A",
-  subtle: "#6B7280",
-  border: "#E5E7EB",
-  soft: "#F3F4F6",
-  mutedBtnBg: "#E5E7EB",
-  ripple: "#E5E7EB",
-  primary: "#2563EB",
-  pickerBg: "#0F172A",
-};
-
-const darkTheme = {
-  bg: "#0B1220",
-  headerBg: "#0F172A",
-  card: "#111827",
-  text: "#F9FAFB",
-  subtle: "#9CA3AF",
-  border: "#1F2937",
-  soft: "#1F2937",
-  mutedBtnBg: "#374151",
-  ripple: "#374151",
-  primary: "#2563EB",
-  pickerBg: "#0B1220",
-};
-
 /* ---------- Styles ---------- */
-
-const SHADOW =
-  Platform.OS === "ios"
-    ? { shadowColor: "#000", shadowOpacity: 0.08, shadowOffset: { width: 0, height: 8 }, shadowRadius: 16 }
-    : { elevation: 10 };
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
@@ -558,7 +524,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    ...SHADOW,
   },
   fabLabel: { fontSize: 15, color: "#fff", fontWeight: "800" },
 

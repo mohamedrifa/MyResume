@@ -21,6 +21,7 @@ import { ref, update, get, child } from "firebase/database";
 import { AuthContext } from "../context/AuthContext";
 import RNFS from "react-native-fs";
 import { launchImageLibrary } from "react-native-image-picker";
+import { getTheme } from "../constants/ColorConstants";
 
 /* ---------- helpers / normalizers ---------- */
 const emptyEdu = () => ({ stream: "", from: "", to: "", percentage: "", institute: "" });
@@ -159,39 +160,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
   const uid = user?.uid;
   const scheme = useColorScheme();
 
-  const theme = useMemo(
-    () =>
-      scheme === "dark"
-        ? {
-            bg: "#0b1220",
-            headerBg: "#0f172a",
-            card: "#111827",
-            text: "#f9fafb",
-            subtle: "#9ca3af",
-            border: "#1f2937",
-            primary: "#2563eb",
-            primaryPressed: "#1e40af",
-            accent: "#0b7285",
-            danger: "#ef4444",
-            good: "#16a34a",
-            note: "#eab308",
-          }
-        : {
-            bg: "#f7f8fb",
-            headerBg: "#ffffff",
-            card: "#ffffff",
-            text: "#0f172a",
-            subtle: "#6b7280",
-            border: "#e5e7eb",
-            primary: "#2563eb",
-            primaryPressed: "#1e40af",
-            accent: "#0b7285",
-            danger: "#ef4444",
-            good: "#16a34a",
-            note: "#a16207",
-          },
-    [scheme]
-  );
+  const theme = useMemo(() => getTheme(scheme), [scheme]);
 
   const [form, setForm] = useState({
     name: "",
