@@ -190,6 +190,18 @@ export default function EditResumeScreen({ initialData, onBack }) {
     languages: [emptyLang()],
   });
 
+  const onlyDigits = (val) => {
+    if (val == null) return "";   
+    const s = typeof val === "string" ? val : String(val);
+    return s.replace(/\D+/g, "");            
+  };
+
+  const clamp0to100 = (num) => {
+    const n = Number(num);
+    if (Number.isNaN(n)) return 0;
+    return Math.max(0, Math.min(100, Math.round(n)));
+  };
+
   /* Generate preview HTML */
   const previewHtml = useMemo(() => {
     const previewData = {
@@ -265,10 +277,6 @@ export default function EditResumeScreen({ initialData, onBack }) {
     }
   };
   const removeProfile = () => setForm((p) => ({ ...p, profile: "" }));
-
-  /* helpers */
-  const onlyDigits = (s) => String(s || "").replace(/[^\d]/g, "");
-  const clamp0to100 = (n) => Math.max(0, Math.min(100, Number.isFinite(n) ? n : 0));
 
   /* save */
   const save = async () => {
