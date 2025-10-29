@@ -1,7 +1,9 @@
 // src/App.js
 import React, { useContext, useState, useEffect } from "react";
-import { SafeAreaView, StatusBar, BackHandler, Alert } from "react-native";
+import { StatusBar, BackHandler, Alert } from "react-native";
 import { AuthProvider, AuthContext } from "./context/AuthContext";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import HomeScreen from "./screens/HomeScreen";
@@ -90,8 +92,7 @@ const AppContent = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#f3f4f6" }}>
-        <StatusBar barStyle="dark-content" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#f3f4f6" }} edges={["top", "left", "right","bottom"]}>
         <AppContent />
       </SafeAreaView>
     </AuthProvider>

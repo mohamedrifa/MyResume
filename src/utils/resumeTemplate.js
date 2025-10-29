@@ -4,7 +4,7 @@ export const resumeTemplate = (data, color) => {
   const isGit = () => {
     if (data.git && data.git.trim() !== "") {
       return `•
-        <a href="${data.git}">${data.git}</a>`;
+        <a href="${data.git}">${(data.git.includes("git") && "GitHub: ") + data.git}</a>`;
     } else {
       return "";
     }
@@ -321,8 +321,8 @@ export const resumeTemplate = (data, color) => {
       <div class="subtle">${data.title || ""}</div>
       <address class="contact">
         ${data.address || ""}<br />
-        ${data.email ? `<a href="mailto:${data.email}">${data.email}</a>` : ""} ${data.phone ? `• <a href="tel:+91${data.phone}">+91&nbsp;${data.phone}</a>` : ""}<br />
-        ${data.linkedIn ? `<a href="${data.linkedIn}">${data.linkedIn}</a>` : ""} ${isGit()}
+        ${data.email ? `<a href="mailto:${data.email}">${data.email}</a>` : ""} ${data.phone ? `• <a href="tel:{data.phone}">${data.phone}</a>` : ""}<br />
+        ${data.linkedIn ? `<a href="${data.linkedIn}">${(data.linkedIn.includes("linkedin") && "LinkedIn: ") + data.linkedIn}</a>` : ""} ${isGit()}
       </address>
     </div>
   </header>

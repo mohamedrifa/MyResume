@@ -30,8 +30,8 @@ import { resumeTemplate } from "../utils/resumeTemplate";
 /* ---------- helpers / normalizers ---------- */
 const emptyEdu = () => ({ stream: "", from: "", to: "", percentage: "", institute: "" });
 const emptyExp = () => ({ role: "", location: "", company: "", from: "", to: "", summary: "" });
-const emptyProj = () => ({ title: "", stack: "", description: "" });
-const emptyCert = () => ({ name: "" });
+const emptyProj = () => ({ title: "", stack: "", description: "", image: "", link: "" });
+const emptyCert = () => ({ name: "", link: "" });
 const emptyLang = () => ({ language: "", proficiency: "" });
 
 const ensureArray = (val) => {
@@ -45,7 +45,7 @@ const ensureArray = (val) => {
 
 const normalizeEducation = (raw) => {
   const arr = ensureArray(raw);
-  return (arr.length ? arr : [emptyEdu()]).map((e) => ({
+  return (arr.length ? arr : [emptyEdu()]).reverse().map((e) => ({
     stream: e.stream || e.degree || "",
     from: e.from || e.start || "",
     to: e.to || e.end || "",
@@ -55,7 +55,7 @@ const normalizeEducation = (raw) => {
 };
 const normalizeExperience = (raw) => {
   const arr = ensureArray(raw);
-  return (arr.length ? arr : [emptyExp()]).map((x) => ({
+  return (arr.length ? arr : [emptyExp()]).reverse().map((x) => ({
     role: x.role || "",
     location: x.location || x.mode || "",
     company: x.company || "",
@@ -66,16 +66,19 @@ const normalizeExperience = (raw) => {
 };
 const normalizeProjects = (raw) => {
   const arr = ensureArray(raw);
-  return (arr.length ? arr : [emptyProj()]).map((p) => ({
+  return (arr.length ? arr : [emptyProj()]).reverse().map((p) => ({
     title: p.title || p.name || "",
     stack: p.stack || "",
     description: p.description || "",
+    image: p.image || "",
+    link: p.link || "",
   }));
 };
 const normalizeCertifications = (raw) => {
   const arr = ensureArray(raw);
-  return (arr.length ? arr : [emptyCert()]).map((c) => ({
+  return (arr.length ? arr : [emptyCert()]).reverse().map((c) => ({
     name: c.name || c.title || c.certificate || c || "",
+    link: c.link || "",
   }));
 };
 const normalizeLanguages = (raw) => {
@@ -85,7 +88,7 @@ const normalizeLanguages = (raw) => {
     if (Number.isNaN(n)) return "";
     return Math.max(0, Math.min(100, Math.round(n)));
   };
-  return (arr.length ? arr : [emptyLang()]).map((l) => ({
+  return (arr.length ? arr : [emptyLang()]).reverse().map((l) => ({
     language: l.language || l.name || "",
     proficiency: l.proficiency === "" || l.proficiency === undefined ? "" : toNum(l.proficiency),
   }));
@@ -191,10 +194,25 @@ export default function EditResumeScreen({ initialData, onBack }) {
   const previewHtml = useMemo(() => {
     const previewData = {
       ...form,
+      projects: [...form.projects].reverse().map(({ id, ...rest }) => rest),
+      education: [...form.education].reverse().map(({ id, ...rest }) => rest),
+      experience: [...form.experience].reverse().map(({ id, ...rest }) => rest),
+      certifications: [...form.certifications].reverse().map(({ id, ...rest }) => rest),
       skills: String(form.skills)
+        .replace(/""([^"]+)""/g, "<strong>$1</strong>")
         .split(";")
         .map((s) => s.trim())
         .filter(Boolean),
+      languages: [...(form.languages || [])]
+        .reverse()
+        .map((l) => ({
+          language: (l.language || "").trim(),
+          proficiency:
+            l.proficiency === "" || l.proficiency === undefined
+              ? ""
+              : clamp0to100(Number(onlyDigits(l.proficiency))),
+        }))
+      .filter((l, idx, arr) => l.language || l.proficiency !== "" || arr.length === 1),
     };
     return resumeTemplate(previewData, form.resumeColor || "#0b7285");
   }, [form]);
@@ -210,7 +228,9 @@ export default function EditResumeScreen({ initialData, onBack }) {
       phone: d.phone || "",
       address: d.address || "",
       summary: d.summary || "",
-      skills: Array.isArray(d.skills) ? d.skills.join("; ") : d.skills || "",
+      skills: Array.isArray(d.skills)
+        ? d.skills.join("; ").replace(/<strong>(.*?)<\/strong>/g, '""$1""')
+        : (d.skills || "").replace(/<strong>(.*?)<\/strong>/g, '""$1""'),
       profile: d.profile || "",
       resumeColor: d.resumeColor || "#0b7285",
       education: normalizeEducation(d.education),
@@ -255,11 +275,17 @@ export default function EditResumeScreen({ initialData, onBack }) {
     try {
       const payload = {
         ...form,
+        projects: [...form.projects].reverse().map(({ id, ...rest }) => rest),
+        education: [...form.education].reverse().map(({ id, ...rest }) => rest),
+        experience: [...form.experience].reverse().map(({ id, ...rest }) => rest),
+        certifications: [...form.certifications].reverse().map(({ id, ...rest }) => rest),
         skills: String(form.skills)
+          .replace(/""([^"]+)""/g, "<strong>$1</strong>")
           .split(";")
           .map((s) => s.trim())
           .filter(Boolean),
-        languages: (form.languages || [])
+        languages: [...(form.languages || [])]
+          .reverse()
           .map((l) => ({
             language: (l.language || "").trim(),
             proficiency:
@@ -267,7 +293,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
                 ? ""
                 : clamp0to100(Number(onlyDigits(l.proficiency))),
           }))
-          .filter((l, idx, arr) => l.language || l.proficiency !== "" || arr.length === 1),
+        .filter((l, idx, arr) => l.language || l.proficiency !== "" || arr.length === 1),
       };
       await update(ref(db, `users/${uid}`), payload);
       Alert.alert("✅ Saved", "Your resume was updated successfully!");
@@ -350,9 +376,11 @@ export default function EditResumeScreen({ initialData, onBack }) {
             <InputField multiline value={form.summary} onChangeText={(t) => setForm({ ...form, summary: t })} placeholder="Brief overview of your experience and goals." theme={theme} />
           </Section>
 
-          <Section title="Skills" suggestion='Separate skills by ";" — supports <strong>bold</strong>' theme={theme}>
+          <Section title="Skills" suggestion='Separate skills by ";" — supports ""bold""' theme={theme}>
             <InputField multiline value={form.skills} onChangeText={(t) => setForm({ ...form, skills: t })} placeholder="e.g., JavaScript; React; Node.js" theme={theme} />
           </Section>
+
+          <Text style={{ color: "#ffffff93" }}>Note: Enter data in chronological order (oldest to newest)</Text>
 
           {/* PROJECTS */}
           <Section title="Projects" suggestion='Use ";" for new lines in Description' theme={theme}>
@@ -367,7 +395,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
             ))}
             <AddButton title="+ Add Project" onPress={() => setForm({ ...form, projects: [...form.projects, emptyProj()] })} />
           </Section>
-
+          
           {/* EXPERIENCE */}
           <Section title="Experience" suggestion='Use ";" for new lines in Summary' theme={theme}>
             {form.experience.map((x, idx) => (
