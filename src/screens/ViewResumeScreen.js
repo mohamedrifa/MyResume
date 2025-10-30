@@ -149,18 +149,30 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
     try {
       const hasPermission = await requestStoragePermission();
       if (!hasPermission) {
-        Alert.alert("Permission needed", "Storage permission is required to save the PDF.");
+        console.log('Storage permission denied');
         return;
       }
-      const saveDir = getPreferredSaveDir();
-      const outPath = await generatePDF(saveDir);
-      setPdfPath(outPath);
-
-      if (Platform.OS === "android") {
-        ToastAndroid.show("PDF saved to: " + outPath, ToastAndroid.LONG);
-      } else {
-        Alert.alert("PDF Saved", `Location:\n${outPath}`);
+      const customPath = `${RNFS.ExternalStorageDirectoryPath}/Documents`; 
+      const dirExists = await RNFS.exists(customPath);
+      if (!dirExists) {
+        await RNFS.mkdir(customPath);
       }
+      const options = {
+        html: html,
+        fileName: jobName,
+        pageSize: 'A4',
+      };
+      const file = await RNHTMLtoPDF.convert(options);
+      const originalPath = file.filePath;
+      const newFilePath = `${customPath}/${jobName}.pdf`;
+      await RNFS.moveFile(originalPath, newFilePath);
+      setPdfPath(newFilePath);
+    if (Platform.OS === "android") {
+      ToastAndroid.show("PDF saved to: " + newFilePath, ToastAndroid.LONG);
+    } else {
+      Alert.alert("PDF Saved", `Location:\n${newFilePath}`);
+    }
+   
     } catch (e) {
       console.log("Save error:", e);
       Alert.alert("Couldn't save PDF", "Please try again.");
