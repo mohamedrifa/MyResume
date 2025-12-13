@@ -39,11 +39,12 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
 
   const [loading, setLoading] = useState(false);
   const [color, setColor] = useState(resume.resumeColor || "#0b7285");
+  const [showQR, setShowQR] = useState(resume.QREnabled || false);
   const [showPicker, setShowPicker] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [pdfPath, setPdfPath] = useState(null);
 
-  const html = useMemo(() => resumeTemplate(resume, color), [resume, color]);
+  const html = useMemo(() => resumeTemplate(resume, color, showQR), [resume, color, showQR]);
 
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -100,6 +101,13 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
     }
   }, [uid]);
 
+  const QREnabled = async() => {
+    try {
+      await set(ref(db, `users/${uid}/QREnabled`), !showQR);
+    } catch (e) {
+      console.log("Failed to persist QR:", e);
+    }
+  }
   /* ---------- PDF helpers ---------- */
 
   const generatePDF = useCallback(async (dirOverride) => {
@@ -274,6 +282,27 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
             </Pressable>
 
             <View style={{ flex: 1 }} />
+            <TouchableOpacity
+              style={[
+                styles.radioWrap,
+                { borderColor: THEME.border, backgroundColor: THEME.card },
+              ]}
+              onPress={() => {QREnabled(); setShowQR(v => !v);}}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: showQR }}
+            >
+              <View
+                style={[
+                  styles.radioOuter,
+                  { borderColor: showQR ? THEME.primary : THEME.border },
+                ]}
+              >
+                {showQR && <View style={[styles.radioInner, { backgroundColor: THEME.primary }]} />}
+              </View>
+              <Text style={{ color: THEME.text, fontWeight: "600" }}>
+                QR
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[
@@ -299,6 +328,7 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
           ]}
         >
           <WebView
+            textZoom={65}
             originWhitelist={["*"]}
             source={{ html, baseUrl: "" }}
             style={styles.webview}
@@ -610,6 +640,28 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   sheetCancelText: { fontSize: 15, fontWeight: "700", textAlign: "center" },
+    radioWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  radioOuter: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
 });
 
 export default ViewResumeScreen;

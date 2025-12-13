@@ -1,23 +1,49 @@
 // src/utils/pdfTemplate.js
-export const resumeTemplate = (data, color) => {
+export const resumeTemplate = (data, color, showPortfolioQR = false) => {
 
   const isGit = () => {
     if (data.git && data.git.trim() !== "") {
-      return `•
+      return `• <br />
         <a href="${data.git}">${(data.git.includes("git") && "GitHub: ") + data.git}</a>`;
     } else {
       return "";
     }
   };
 
+  const isPortfolio = () => {
+    if (data.portfolio && data.portfolio.trim() !== "") {
+      return `•
+        <a href="${data.portfolio}">${"Portfolio: " + data.portfolio}</a>`;
+    } else {
+      return "";
+    }
+  };
+  
+  const portfolioQR = () => {
+    if (showPortfolioQR && data.portfolio && data.portfolio.trim() !== "") {
+      const encodedUrl = encodeURIComponent(data.portfolio);
+      return `
+        <div class="qr-code" role="complementary" aria-label="Portfolio QR Code">
+          <img 
+            src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodedUrl}" 
+            alt="Scan to visit portfolio"
+            style="height:100%; aspect-ratio:1 / 1;"
+          />
+          <div class="qr-label">Portfolio</div>
+        </div>
+      `;
+    }
+    return "";
+  };
+
   const summary = () => {
     if (data.summary && data.summary.trim() !== "") {
       return `<section aria-label="Summary">
-    <h2>Summary</h2>
-    <p>
-      ${data.summary}
-    </p>
-  </section>`;} 
+        <h2>Summary</h2>
+        <p>
+          ${data.summary}
+        </p>
+      </section>`;} 
     else {
       return "";
     }
@@ -58,8 +84,6 @@ export const resumeTemplate = (data, color) => {
       return ``;
     }
   };
-
-  const headerStyle = data.profile && data.profile.trim() !== "" ? "text-align:left;" : "text-align:center;";
 
   const eachProjects = (projects) => {
     let projectContent = "";
@@ -269,7 +293,7 @@ export const resumeTemplate = (data, color) => {
         flex-wrap:wrap;
         align-items:center;
         justify-content:center;
-        text-align:${data.profile && data.profile.trim() !== "" ? "left" : "center"};
+        text-align:${(data.profile && data.profile.trim() !== "") || (data.portfolio && data.portfolio.trim() !== "" && showPortfolioQR) ? "left" : "center"};
         gap:16px;
       }
       .photo{
@@ -282,7 +306,25 @@ export const resumeTemplate = (data, color) => {
       .photo img{
         width:100%;height:100%;object-fit:cover;display:block;
       }
-      .header-text{flex:1 1 250px;}
+      .qr-code{
+        bottom:15px;
+        right:15px;
+        text-align:center;
+        background:white;
+        padding:8px;
+        border:2px solid var(--accent);
+        border-radius:4px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.1);
+      }
+      .qr-label{
+        font-size:11px;
+        color:var(--accent);
+        font-weight:600;
+        margin-top:4px;
+        text-transform:uppercase;
+        letter-spacing:0.5px;
+      }
+      .header-text{flex:1}
       .subtle{color:var(--muted)}
       .contact{margin-top:4px;font-size:13px;line-height:1.3}
       .contact a{color:var(--accent);text-decoration:none}
@@ -322,9 +364,10 @@ export const resumeTemplate = (data, color) => {
       <address class="contact">
         ${data.address || ""}<br />
         ${data.email ? `<a href="mailto:${data.email}">${data.email}</a>` : ""} ${data.phone ? `• <a href="tel:{data.phone}">${data.phone}</a>` : ""}<br />
-        ${data.linkedIn ? `<a href="${data.linkedIn}">${(data.linkedIn.includes("linkedin") && "LinkedIn: ") + data.linkedIn}</a>` : ""} ${isGit()}
+        ${data.linkedIn ? `<a href="${data.linkedIn}">${(data.linkedIn.includes("linkedin") && "LinkedIn: ") + data.linkedIn}</a>` : ""} ${isGit()} ${isPortfolio()}
       </address>
     </div>
+    ${portfolioQR()}
   </header>
 
   <hr />

@@ -177,6 +177,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
     email: "",
     git: "",
     linkedIn: "",
+    portfolio: "",
     phone: "",
     address: "",
     summary: "",
@@ -236,6 +237,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
       title: d.title || "",
       email: d.email || user?.email || "",
       git: d.git || "",
+      portfolio: d.portfolio || "",
       linkedIn: d.linkedIn || "",
       phone: d.phone || "",
       address: d.address || "",
@@ -377,6 +379,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
             <InputField label="Phone" value={form.phone} onChangeText={(t) => setForm({ ...form, phone: t })} keyboardType="phone-pad" theme={theme} />
             <InputField label="GitHub/Others" value={form.git} onChangeText={(t) => setForm({ ...form, git: t })} autoCapitalize="none" theme={theme} />
             <InputField label="LinkedIn" value={form.linkedIn} onChangeText={(t) => setForm({ ...form, linkedIn: t })} autoCapitalize="none" theme={theme} />
+            <InputField label="Portfolio" value={form.portfolio} onChangeText={(t) => setForm({ ...form, portfolio: t })} autoCapitalize="none" theme={theme} />
             <InputField multiline label="Address" value={form.address} onChangeText={(t) => setForm({ ...form, address: t })} theme={theme} />
           </Section>
 
