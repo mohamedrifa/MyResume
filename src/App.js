@@ -75,7 +75,7 @@ const AppContent = () => {
     case "home":
       return (
         <HomeScreen
-          navigateToEdit={(data) => navigate("edit", data)}
+          navigateToEdit={() => navigate("edit")}
           navigateToView={(data) => navigate("view", data)}
           navigateToProfile={() => navigate("profile")}
         />
@@ -84,7 +84,6 @@ const AppContent = () => {
     case "edit":
       return (
         <EditResumeScreen
-          initialData={resumeData}
           onBack={() =>
             setRouteStack((prev) => prev.slice(0, prev.length - 1))
           }
@@ -108,7 +107,7 @@ const AppContent = () => {
           onBack={() =>
             setRouteStack((prev) => prev.slice(0, prev.length - 1))
           }
-          navigateToEdit={(data) => navigate("edit", data)}
+          navigateToEdit={(data) => navigate("edit")}
           navigateToProfile={() => navigate("profile")}
         />
       );

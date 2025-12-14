@@ -1,5 +1,5 @@
 // src/screens/HomeScreen.js
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { use, useContext, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -15,37 +15,16 @@ import {
 import Button from "../components/Button";
 import ProfileIcon from "../components/ProfileIcon";
 import { AuthContext } from "../context/AuthContext";
-import { db } from "../services/firebaseConfig";
-import { ref, onValue } from "firebase/database";
 import Loader from "../components/Loader";
 import { getTheme } from "../constants/ColorConstants";
+import { useFetchUserData } from "../utils/apiUtil";
 
 const HomeScreen = ({ navigateToEdit, navigateToView, navigateToProfile }) => {
   const { user } = useContext(AuthContext);
   const scheme = useColorScheme();
-  const [resume, setResume] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const uid = user?.uid;
+  const { resume, loading } = useFetchUserData();
 
   const theme = useMemo(() => getTheme(scheme), [scheme]);
-
-  useEffect(() => {
-    if (!uid) return;
-    setLoading(true);
-    const r = ref(db, `users/${uid}`);
-    const unsub = onValue(
-      r,
-      (snapshot) => {
-        setResume(snapshot.val());
-        setLoading(false);
-      },
-      (error) => {
-        console.warn(error);
-        setLoading(false);
-      }
-    );
-    return () => unsub();
-  }, [uid]);
 
   const initials = useMemo(() => {
     const n = (resume?.name || user?.email || "You").trim();
@@ -103,7 +82,7 @@ const HomeScreen = ({ navigateToEdit, navigateToView, navigateToProfile }) => {
         >
           <View style={styles.cardHeaderRow}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Profile</Text>
-            <TouchableOpacity onPress={() => navigateToEdit(resume || {})} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity onPress={() => navigateToEdit()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Text style={[styles.link, { color: theme.primary }]}>Edit</Text>
             </TouchableOpacity>
           </View>

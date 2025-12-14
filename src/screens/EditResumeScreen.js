@@ -26,6 +26,7 @@ import RNFS from "react-native-fs";
 import { launchImageLibrary } from "react-native-image-picker";
 import { getTheme } from "../constants/ColorConstants";
 import { resumeTemplate } from "../utils/resumeTemplate";
+import { useFetchUserData } from "../utils/apiUtil";
 
 /* ---------- helpers / normalizers ---------- */
 const emptyEdu = () => ({ stream: "", from: "", to: "", percentage: "", institute: "" });
@@ -145,27 +146,31 @@ const toBase64DataUri = async (uri, mimeHint = "image/jpeg") => {
 };
 
 /* ---------- Floating Save FAB ---------- */
-const FloatingSaveButton = ({ onPress, theme, disabled }) => (
+const FloatingSaveButton = ({ onPress, theme, loading }) => (
   <Pressable
     onPress={onPress}
-    disabled={disabled}
+    disabled={loading}
     accessibilityRole="button"
     accessibilityLabel="Save resume"
     hitSlop={8}
     style={({ pressed }) => [
       styles.fab,
       { backgroundColor: pressed ? theme.primaryPressed : theme.primary },
-      disabled && { opacity: 0.6 },
+      loading && { opacity: 0.6 },
     ]}
   >
-    <Text style={styles.fabText}>Save</Text>
+    <Text style={styles.fabText}>
+      {loading ? "Loading..." : "Save"}
+    </Text>
   </Pressable>
 );
 
-export default function EditResumeScreen({ initialData, onBack }) {
+
+export default function EditResumeScreen({ onBack }) {
   const { user } = useContext(AuthContext);
   const uid = user?.uid;
   const scheme = useColorScheme();
+  const { initialData, loading } = useFetchUserData();
 
   const theme = useMemo(() => getTheme(scheme), [scheme]);
 
@@ -491,7 +496,7 @@ export default function EditResumeScreen({ initialData, onBack }) {
       </KeyboardAvoidingView>
 
       {/* Floating Save FAB */}
-      <FloatingSaveButton onPress={save} theme={theme} />
+      <FloatingSaveButton onPress={save} theme={theme} loading={loading} />
 
       {/* Preview Modal */}
       <Modal
