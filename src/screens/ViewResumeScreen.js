@@ -29,8 +29,11 @@ import { db } from "../services/firebaseConfig";
 import { ref, set } from "firebase/database";
 import { AuthContext } from "../context/AuthContext";
 import { lightTheme, darkTheme } from "../constants/ColorConstants";
+import { getTheme } from "../constants/ColorConstants";
+import Loader from "../components/Loader";
+import { useFetchUserData } from "../utils/apiUtil";
 
-const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile }) => {
+const ViewResumeScreen2 = ({ resume, onBack, navigateToEdit, navigateToProfile }) => {
   const { user } = useContext(AuthContext);
   const uid = user?.uid;
   const scheme = useColorScheme();
@@ -475,6 +478,30 @@ const ViewResumeScreen = ({ resume, onBack, navigateToEdit, navigateToProfile })
     </SafeAreaView>
   );
 };
+
+const ViewResumeScreen = ({ onBack, navigateToEdit, navigateToProfile }) => {
+  const scheme = useColorScheme();
+  const theme = useMemo(() => getTheme(scheme), [scheme]);
+  const { resume, loading } = useFetchUserData();
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safe, { justifyContent: "center", alignItems: "center" }]}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.bg, position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+        <Loader message="Loading..." />
+      </View>
+      </SafeAreaView>
+    );
+  } else {
+    return (
+      <ViewResumeScreen2
+        resume={resume}
+        onBack={onBack}
+        navigateToEdit={navigateToEdit}
+        navigateToProfile={navigateToProfile}
+      />
+    );
+  }
+}
 
 /* ---------- Styles ---------- */
 

@@ -76,7 +76,7 @@ const AppContent = () => {
       return (
         <HomeScreen
           navigateToEdit={() => navigate("edit")}
-          navigateToView={(data) => navigate("view", data)}
+          navigateToView={() => navigate("view")}
           navigateToProfile={() => navigate("profile")}
         />
       );
