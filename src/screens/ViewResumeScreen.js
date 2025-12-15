@@ -32,6 +32,7 @@ import { lightTheme, darkTheme } from "../constants/ColorConstants";
 import { getTheme } from "../constants/ColorConstants";
 import Loader from "../components/Loader";
 import { useFetchUserData } from "../utils/apiUtil";
+import { RESUME_LINK } from "../constants/TextConstant";
 
 const ViewResumeScreen2 = ({ resume, onBack, navigateToEdit, navigateToProfile }) => {
   const { user } = useContext(AuthContext);
@@ -216,6 +217,17 @@ const ViewResumeScreen2 = ({ resume, onBack, navigateToEdit, navigateToProfile }
       setShowActions(false);
     }
   }, [cachePDF, pdfPath]);
+
+  const handleOpenLink = async () => {
+    try {
+      await Share.open({
+        message: `${RESUME_LINK}/${uid}`,
+        type: "link",
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   const handleOpenPicker = useCallback(() => setShowPicker(true), []);
   const handleClosePicker = useCallback(() => {
@@ -434,7 +446,20 @@ const ViewResumeScreen2 = ({ resume, onBack, navigateToEdit, navigateToProfile }
           </Pressable>
 
           <View style={[styles.sheetCard, THEME.shadow, { backgroundColor: THEME.card }]}>
-            <Text style={[styles.sheetTitle, { color: THEME.text }]}>What would you like to do?</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <Text style={[styles.sheetTitle, { color: THEME.text }]}>What would you like to do?</Text>
+              <TouchableOpacity
+                style={[
+                  styles.colorDotWrap,
+                  { borderColor: THEME.border, backgroundColor: THEME.card },
+                ]}
+                onPress={handleOpenLink}
+                accessibilityRole="button"
+                accessibilityLabel="Choose accent color"
+              >
+                <Text style={{ color: THEME.text, fontWeight: "600" }}>🔗 Link</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.sheetButtons}>
               <Pressable
                 onPress={handleSharePdf}

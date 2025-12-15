@@ -23,8 +23,7 @@ import EditResumeScreen from "./screens/EditResumeScreen";
 import ViewResumeScreen from "./screens/ViewResumeScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import { getTheme } from "./constants/ColorConstants";
-
-const CURRENT_VERSION = "1.2";
+import { CURRENT_VERSION } from "./constants/TextConstant";
 
 const AppContent = () => {
   const { user, initializing } = useContext(AuthContext);

@@ -4,8 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../context/AuthContext";
 import { db } from "../services/firebaseConfig";
 import { ref, onValue } from "firebase/database";
-
-const CACHE_PREFIX = "My_Resume_Cache_";
+import { CACHE_PREFIX } from "../constants/TextConstant";
 
 export function useFetchUserData() {
   const { user } = useContext(AuthContext);
