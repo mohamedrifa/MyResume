@@ -407,6 +407,7 @@ export default function EditResumeScreen({ onBack }) {
                 <InputField label="Title" value={p.title} onChangeText={(t) => setForm({ ...form, projects: form.projects.map((x, i) => (i === idx ? { ...x, title: t } : x)) })} theme={theme} />
                 <InputField label="Stack/Technologies" value={p.stack} onChangeText={(t) => setForm({ ...form, projects: form.projects.map((x, i) => (i === idx ? { ...x, stack: t } : x)) })} theme={theme} />
                 <InputField label="Description" multiline value={p.description} onChangeText={(t) => setForm({ ...form, projects: form.projects.map((x, i) => (i === idx ? { ...x, description: t } : x)) })} theme={theme} />
+                <InputField label="Link (optional)" value={p.link} onChangeText={(t) => setForm({ ...form, projects: form.projects.map((x, i) => (i === idx ? { ...x, link: t } : x)) })} theme={theme} />
               </View>
             ))}
             <AddButton title="+ Add Project" onPress={() => setForm({ ...form, projects: [...form.projects, emptyProj()] })} />
@@ -488,6 +489,7 @@ export default function EditResumeScreen({ onBack }) {
                 <RemoveButton onPress={() => setForm({ ...form, certifications: form.certifications.filter((_, i) => i !== idx) })} theme={theme} />
                 <Text style={[styles.cardHeader, { color: theme.text }]}>Certificate #{idx + 1}</Text>
                 <InputField label="Certificate Name" value={c.name} onChangeText={(t) => setForm({ ...form, certifications: form.certifications.map((cert, i) => (i === idx ? { ...cert, name: t } : cert)) })} theme={theme} />
+                <InputField label="Link (optional)" value={c.link} onChangeText={(t) => setForm({ ...form, certifications: form.certifications.map((cert, i) => (i === idx ? { ...cert, link: t } : cert)) })} theme={theme} />
               </View>
             ))}
             <AddButton title="+ Add Certification" onPress={() => setForm({ ...form, certifications: [...form.certifications, emptyCert()] })} />

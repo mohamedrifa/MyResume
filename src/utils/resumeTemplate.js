@@ -90,14 +90,31 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
     for (let i = 0; i < projects.length; i++) {
       const p = projects[i] || {};
       const lines = String(p.description || "")
-        .split(';')
+        .split(";")
         .map(s => s.trim())
         .filter(Boolean);
-      const listItems = lines.map(line => `<li>${line}</li>`).join('');
+      const listItems = lines.map(line => `<li>${line}</li>`).join("");
       projectContent += `
         <div class="block">
-          <div class="row-top">
-            <h3>${p.title || ""}</h3>
+          <div class="row-top" style="align-items:center;">
+            <div class="row-top">
+              <h3 style="margin:0;">${p.title || ""}</h3>
+              ${
+                p.link
+                  ? `<a href="${p.link}" target="_blank" rel="noopener" style="
+                      display:inline-block;
+                      padding:1px 3px;
+                      font-size:10px;
+                      background:${color}50;
+                      color:#fff;
+                      border-radius:5px;
+                      text-decoration:none;
+                      margin-left:8px;
+                      vertical-align:middle;
+                    ">View</a>`
+                  : ""
+              }
+            </div>
             <div class="where-when">${p.stack || ""}</div>
           </div>
           ${listItems ? `<ul>${listItems}</ul>` : ""}
@@ -191,7 +208,29 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
   const certifications = () => {
     if (Array.isArray(data.certifications) && data.certifications.length > 0) {
       const items = data.certifications
-        .map((c) => (c && c.name ? `<li>${c.name}</li>` : ""))
+        .map((c) => {
+          if (!c?.name) return "";
+          return `
+            <li>
+              <span>${c.name}</span>
+              ${
+                c.link
+                  ? `<a href="${c.link}" target="_blank" rel="noopener" style="
+                      display:inline-block;
+                        padding:1px 3px;
+                        font-size:10px;
+                        background:${color}50;
+                        color:#fff;
+                        border-radius:5px;
+                        text-decoration:none;
+                        margin-left:8px;
+                        vertical-align:middle;
+                    ">View</a>`
+                  : ""
+              }
+            </li>
+          `;
+        })
         .join("");
       if (!items.trim()) return "";
       return `

@@ -11,6 +11,7 @@ import {
   Pressable,
   SafeAreaView,
   StatusBar,
+  ScrollView,
   ActivityIndicator,
   TouchableOpacity,
   useColorScheme,
@@ -353,6 +354,7 @@ const ViewResumeScreen2 = ({ resume, onBack, navigateToEdit, navigateToProfile }
             automaticallyAdjustContentInsets
           />
         </View>
+        <View style={{ height: 50 }} />
 
         {/* Main action: share / save */}
         <Pressable
@@ -579,7 +581,7 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     margin: 16,
-    borderRadius: 16,
+    borderRadius: 10,
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
   },
@@ -606,9 +608,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 16,
     bottom: 20,
-    minWidth: 190,
-    height: 50,
     paddingHorizontal: 18,
+    paddingVertical: 10,
     borderRadius: 26,
     flexDirection: "row",
     alignItems: "center",
