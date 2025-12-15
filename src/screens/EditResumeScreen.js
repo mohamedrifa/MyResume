@@ -170,7 +170,7 @@ export default function EditResumeScreen({ onBack }) {
   const { user } = useContext(AuthContext);
   const uid = user?.uid;
   const scheme = useColorScheme();
-  const { initialData, loading } = useFetchUserData();
+  const { resume: initialData, loading } = useFetchUserData();
 
   const theme = useMemo(() => getTheme(scheme), [scheme]);
 
