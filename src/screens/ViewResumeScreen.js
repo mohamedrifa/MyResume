@@ -2,26 +2,15 @@
 import React, { useMemo, useState, useContext, useCallback } from "react";
 import {
   View,
-  Image,
-  Text,
   StyleSheet,
   Alert,
   Platform,
-  Modal,
-  Pressable,
   SafeAreaView,
   StatusBar,
-  ScrollView,
-  ActivityIndicator,
-  TouchableOpacity,
   useColorScheme,
   PermissionsAndroid,
   ToastAndroid,
 } from "react-native";
-import { WebView } from "react-native-webview";
-import ColorPicker from "../components/ViewResume/utilities/ColorPicker";
-import Button from "../components/Button";
-import ProfileIcon from "../components/ProfileIcon";
 import { resumeTemplate } from "../utils/resumeTemplate";
 import Share from "react-native-share";
 import RNFS from "react-native-fs";

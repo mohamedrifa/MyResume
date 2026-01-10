@@ -2,25 +2,25 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   useColorScheme,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Alert,
   ScrollView,
-  TouchableOpacity,
 } from "react-native";
 import { AuthContext } from "../context/AuthContext";
 import { auth, db } from "../services/firebaseConfig";
 import { ref, onValue } from "firebase/database";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, signOut } from "firebase/auth";
-import Button from "../components/Button";
-import InputField from "../components/InputField";
 import Loader from "../components/Loader";
 import { getTheme } from "../constants/ColorConstants";
+import Header from "../components/Profile/Header";
+import ProfileAvatar from "../components/Profile/ProfileAvatar";
+import BasicDetailCard from "../components/Profile/BasicDetailCard";
+import ChangePasswordSection from "../components/Profile/ChangePasswordSection";
+import AccountSection from "../components/Profile/AccountSection";
 
 const ProfileScreen = ({ onBack }) => {
   const scheme = useColorScheme();
@@ -126,139 +126,48 @@ const ProfileScreen = ({ onBack }) => {
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 24 }]}>
-          {/* Header with Back */}
-          <View style={styles.headerRow}>
-            <TouchableOpacity
-              onPress={onBack}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.backBtn}
-            >
-              <Text style={[styles.backTxt, { color: theme.primary }]}>Back</Text>
-            </TouchableOpacity>
 
-            <View style={{ flex: 1, alignItems: "center" }}>
-              <Text style={[styles.headerTitle, { color: theme.text }]}>Profile</Text>
-              <Text style={{ color: theme.subtle, fontSize: 12 }}>{user?.email}</Text>
-            </View>
+          <Header
+            onBack={onBack}
+            theme={theme}
+            title="Profile"
+            subtitle={user?.email}
+          />
 
-            {/* spacer for symmetry */}
-            <View style={{ width: 60 }} />
-          </View>
+          <ProfileAvatar
+            uri={profile?.profile}
+            initials={initials}
+            theme={theme}
+          />
 
-          {/* Avatar */}
-          <View style={{ alignItems: "center", marginBottom: 10 }}>
-            {profile?.profile ? (
-              <Image source={{ uri: profile.profile }} style={styles.avatarImgLg} />
-            ) : (
-              <View style={[styles.avatarLg, { backgroundColor: theme.avatarBg }]}>
-                <Text style={[styles.avatarTxtLg, { color: theme.text }]}>{initials}</Text>
-              </View>
-            )}
-          </View>
+          <BasicDetailCard profile={profile} theme={theme} />
 
-          {/* Basic details card */}
-          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Row label="Name" value={profile?.name || "—"} theme={theme} />
-            <Divider color={theme.border} />
-            <Row label="Title" value={profile?.title || "—"} theme={theme} />
-            <Divider color={theme.border} />
-            <Row label="Phone" value={profile?.phone || "—"} theme={theme} />
-          </View>
+          <ChangePasswordSection
+            theme={theme}
+            oldPwd={oldPwd}
+            newPwd={newPwd}
+            confirmPwd={confirmPwd}
+            setOldPwd={setOldPwd}
+            setNewPwd={setNewPwd}
+            setConfirmPwd={setConfirmPwd}
+            onSubmit={changePassword}
+            loading={changing}
+          />
 
-          {/* Change password */}
-          <Text style={[styles.sectionHeading, { color: theme.text }]}>Change Password</Text>
-          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <InputField
-              label="Current Password"
-              value={oldPwd}
-              onChangeText={setOldPwd}
-              placeholder="Enter current password"
-              theme={theme}
-              secureTextEntry
-            />
-            <InputField
-              label="New Password"
-              value={newPwd}
-              onChangeText={setNewPwd}
-              placeholder="Enter new password"
-              theme={theme}
-              secureTextEntry
-            />
-            <InputField
-              label="Confirm New Password"
-              value={confirmPwd}
-              onChangeText={setConfirmPwd}
-              placeholder="Re-enter new password"
-              theme={theme}
-              secureTextEntry
-            />
-            <Button
-              title={changing ? "Updating..." : "Update Password"}
-              onPress={changePassword}
-              disabled={changing}
-            />
-          </View>
-
-          {/* Account / Logout */}
-          <Text style={[styles.sectionHeading, { color: theme.text }]}>Account</Text>
-          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Button
-              title="Logout"
-              onPress={logout}
-              style={{ backgroundColor: theme.softDangerBg }}
-              textStyle={{ color: theme.softDangerText, fontWeight: "800" }}
-            />
-          </View>
+          <AccountSection
+            theme={theme}
+            onLogout={logout}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
-/* small presentational bits */
-const Row = ({ label, value, theme }) => (
-  <View style={styles.row}>
-    <Text style={[styles.rowLabel, { color: theme.subtle }]}>{label}</Text>
-    <Text style={[styles.rowValue, { color: theme.text }]} numberOfLines={1}>
-      {value}
-    </Text>
-  </View>
-);
-
-const Divider = ({ color }) => <View style={[styles.divider, { backgroundColor: color }]} />;
-
 /* styles */
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   container: { padding: 16, gap: 12 },
-
-  /* header with back */
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  backBtn: { width: 60 },
-  backTxt: { fontSize: 16, fontWeight: "800" },
-  headerTitle: { fontSize: 18, fontWeight: "800" },
-
-  /* avatar */
-  avatarLg: { width: 80, height: 80, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  avatarImgLg: { width: 80, height: 80, borderRadius: 20 },
-  avatarTxtLg: { fontWeight: "800", fontSize: 22 },
-
-  /* cards */
-  sectionHeading: { fontSize: 16, fontWeight: "800", marginTop: 4 },
-  card: { borderRadius: 14, padding: 14, borderWidth: 1, gap: 10 },
-
-  /* rows */
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  rowLabel: { fontSize: 13, fontWeight: "700" },
-  rowValue: { fontSize: 15, fontWeight: "700", maxWidth: "70%" },
-
-  divider: { height: 1, width: "100%", opacity: 0.6 },
 });
 
 export default ProfileScreen;
