@@ -1,23 +1,20 @@
 // src/screens/HomeScreen.js
-import React, { use, useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useMemo } from "react";
 import {
-  View,
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
   useColorScheme,
   SafeAreaView,
-  Image,
-  TouchableOpacity,
   StatusBar,
 } from "react-native";
-import Button from "../components/Button";
-import ProfileIcon from "../components/ProfileIcon";
 import { AuthContext } from "../context/AuthContext";
-import Loader from "../components/Loader";
 import { getTheme } from "../constants/ColorConstants";
 import { useFetchUserData } from "../utils/apiUtil";
+import Header from "../components/Home/Header";
+import InfoCard from "../components/Home/InfoCard";
+import FloatButton from "../components/Home/FloatButton";
+import PageLoader from "../components/Home/PageLoader";
 
 const HomeScreen = ({ navigateToEdit, navigateToView, navigateToProfile }) => {
   const { user } = useContext(AuthContext);
@@ -57,61 +54,19 @@ const HomeScreen = ({ navigateToEdit, navigateToView, navigateToProfile }) => {
       <StatusBar barStyle={scheme === "dark" ? "light-content" : "dark-content"} backgroundColor={theme.bg} />
 
       <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 28 }]}>
-        {/* header */}
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.hi, { color: theme.subtle }]}>Hello,</Text>
-            <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-              {resume?.name || user?.email || "Your Name"}
-            </Text>
-          </View>
-
-          <ProfileIcon
-            resume={resume}
-            onPress={() => navigateToProfile()}
-          />
-        </View>
-
-        {/* profile card */}
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: theme.card, borderColor: theme.cardBorder },
-            theme.shadow,
-          ]}
-        >
-          <View style={styles.cardHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Profile</Text>
-            <TouchableOpacity onPress={() => navigateToEdit()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={[styles.link, { color: theme.primary }]}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
-            {resume?.title || "Add your title"}
-          </Text>
-          <Text style={[styles.summary, { color: theme.subtle }]} numberOfLines={3}>
-            {resume?.summary || "Tell a short, impactful summary about yourself."}
-          </Text>
-
-          {/* chips */}
-          <View style={styles.chipsRow}>
-            <Chip label={`${countOf(resume?.skills)} skills`} theme={theme} />
-            <Chip label={`${countOf(resume?.experience)} experience`} theme={theme} />
-            <Chip label={`${countOf(resume?.projects)} projects`} theme={theme} />
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: theme.divider }]} />
-
-          {/* actions */}
-          <View style={styles.actionsCol}>
-            <Button
-              title="View & Download PDF"
-              onPress={() => navigateToView(resume || {})}
-              style={{ backgroundColor: theme.success }}
-            />
-          </View>
-        </View>
+        <Header
+          resume={resume}
+          user={user}
+          theme={theme}
+          onProfilePress={navigateToProfile}
+        />
+        <InfoCard
+          resume={resume}
+          theme={theme}
+          countOf={countOf}
+          onEdit={navigateToEdit}
+          onView={navigateToView}
+        />
 
         <Text style={[styles.tip, { color: theme.subtle }]}>
           Tip: Keep your summary short and impactful. Add your latest projects and roles.
@@ -119,106 +74,27 @@ const HomeScreen = ({ navigateToEdit, navigateToView, navigateToProfile }) => {
       </ScrollView>
 
       {/* Floating Edit */}
-      {!loading &&
-      <TouchableOpacity
+      <FloatButton
+        visible={!loading}
+        theme={theme}
         onPress={() => navigateToEdit(resume || {})}
-        activeOpacity={0.9}
-        accessibilityRole="button"
-        accessibilityLabel="Edit Resume"
-        style={[styles.fab, { backgroundColor: theme.primary }]}
-      >
-        <Text style={styles.fabTxt}>Edit Resume</Text>
-      </TouchableOpacity>
-      }
-      {loading &&
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.bg, position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
-        <Loader message="Loading your profile..." />
-      </View>}
+      />
+      <PageLoader
+        visible={loading}
+        theme={theme}
+        message="Loading your profile..."
+      />
 
     </SafeAreaView>
   );
 };
 
-const Chip = ({ label, theme }) => (
-  <View style={[styles.chip, { backgroundColor: theme.chipBg, borderColor: theme.cardBorder }]}>
-    <Text style={[styles.chipTxt, { color: theme.chipText }]}>{label}</Text>
-  </View>
-);
+
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   container: { padding: 18 },
-
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  hi: { fontSize: 15 },
-  name: { fontSize: 24, fontWeight: "800" },
-
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarImg: { width: 48, height: 48, borderRadius: 12 },
-  avatarTxt: { fontWeight: "800" },
-
-  card: {
-    width: "100%",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-
-  sectionTitle: { fontWeight: "800", fontSize: 16 },
-  link: { fontWeight: "800" },
-
-  title: { fontSize: 16, fontWeight: "700", marginTop: 2 },
-  summary: { marginTop: 6, fontSize: 14, lineHeight: 20 },
-
-  chipsRow: { flexDirection: "row", gap: 8, marginTop: 12, flexWrap: "wrap" },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  chipTxt: { fontWeight: "700", fontSize: 12 },
-
-  divider: { height: 1, width: "100%", marginTop: 14, marginBottom: 12 },
-
-  actionsCol: { gap: 10 },
-
   tip: { marginTop: 12, fontSize: 12 },
-
-  fab: {
-    position: "absolute",
-    right: 16,
-    bottom: 20,
-    height: 50,
-    paddingHorizontal: 16,
-    borderRadius: 25,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
-  fabIcon: { color: "#fff", marginRight: 8, fontSize: 16 },
-  fabTxt: { color: "#fff", fontWeight: "800", fontSize: 15 },
 });
 
 export default HomeScreen;
