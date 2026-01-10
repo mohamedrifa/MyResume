@@ -23,16 +23,6 @@ const HomeScreen = ({ navigateToEdit, navigateToView, navigateToProfile }) => {
 
   const theme = useMemo(() => getTheme(scheme), [scheme]);
 
-  const initials = useMemo(() => {
-    const n = (resume?.name || user?.email || "You").trim();
-    return n
-      .split(/\s+/)
-      .map((p) => p[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  }, [resume?.name, user?.email]);
-
   // counts for chips
   const countOf = (val) => {
     if (!val) return 0;

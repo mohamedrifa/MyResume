@@ -19,7 +19,7 @@ import {
   ToastAndroid,
 } from "react-native";
 import { WebView } from "react-native-webview";
-import ColorPicker from "../components/ColorPicker";
+import ColorPicker from "../components/ViewResume/utilities/ColorPicker";
 import Button from "../components/Button";
 import ProfileIcon from "../components/ProfileIcon";
 import { resumeTemplate } from "../utils/resumeTemplate";
@@ -34,6 +34,13 @@ import { getTheme } from "../constants/ColorConstants";
 import Loader from "../components/Loader";
 import { useFetchUserData } from "../utils/apiUtil";
 import { RESUME_LINK } from "../constants/TextConstant";
+import Header from "../components/ViewResume/Header";
+import QuickActions from "../components/ViewResume/QuickActions";
+import PreviewCard from "../components/ViewResume/PreviewCard";
+import ShareSaveFAB from "../components/ViewResume/ShareSaveFab";
+import PreparingOverlay from "../components/ViewResume/PreparingOverlay";
+import ColorPickerModal from "../components/ViewResume/ColorPickerModal";
+import ShareActionsSheet from "../components/ViewResume/ShareActionsSheet";
 
 const ViewResumeScreen2 = ({ resume, onBack, navigateToEdit, navigateToProfile }) => {
   const { user } = useContext(AuthContext);
@@ -60,16 +67,6 @@ const ViewResumeScreen2 = ({ resume, onBack, navigateToEdit, navigateToProfile }
         .replace(/[^\w\-]/g, "")}`,
     [resume?.name]
   );
-
-  const initials =
-    (resume?.name || "Your Name")
-      .trim()
-      .split(/\s+/)
-      .map((p) => p[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "YN";
-
   /* ---------- Permissions & Paths ---------- */
 
   const requestStoragePermission = useCallback(async () => {
@@ -248,259 +245,73 @@ const ViewResumeScreen2 = ({ resume, onBack, navigateToEdit, navigateToProfile }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: THEME.bg }]}>
-      <StatusBar
-        barStyle={scheme === "dark" ? "light-content" : "dark-content"}
-        backgroundColor={THEME.headerBg}
-      />
+      <StatusBar barStyle={scheme === "dark" ? "light-content" : "dark-content"} backgroundColor={THEME.headerBg} />
       <View style={[styles.container, { backgroundColor: THEME.bg }]}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: THEME.headerBg, borderBottomColor: THEME.border }]}>
-          <View style={styles.headerRow}>
-            <Button
-              title="Back"
-              onPress={onBack}
-              style={{ backgroundColor: THEME.mutedBtnBg }}
-              textStyle={{ color: THEME.text }}
-              accessibilityLabel="Go back"
-            />
 
-            <View style={styles.headerCenter}>
-              <Text style={[styles.title, { color: THEME.text }]} numberOfLines={1}>
-                {resume?.name || "Your Name"}
-              </Text>
-              {!!resume?.title && (
-                <Text style={[styles.subtitle, { color: THEME.subtle }]} numberOfLines={1}>
-                  {resume.title}
-                </Text>
-              )}
-            </View>
-            <ProfileIcon
-              resume={resume}
-              onPress={() => navigateToProfile()}
-            />
-          </View>
+        <Header
+          resume={resume}
+          theme={THEME}
+          styles={styles}
+          onBack={onBack}
+          onProfilePress={navigateToProfile}
+        />
 
-          {/* quick actions */}
-          <View style={styles.actionsRow}>
-            <Pressable
-              onPress={goToEdit}
-              style={({ pressed }) => [
-                styles.iconBtn,
-                { backgroundColor: THEME.card, borderColor: THEME.border },
-                pressed && styles.pressed,
-              ]}
-              android_ripple={{ color: THEME.ripple }}
-              accessibilityRole="button"
-              accessibilityLabel="Edit resume"
-              hitSlop={8}
-            >
-              <Text style={[styles.iconText, { color: THEME.text }]}>Edit</Text>
-            </Pressable>
+        <QuickActions
+          theme={THEME}
+          styles={styles}
+          color={color}
+          showQR={showQR}
+          onEdit={goToEdit}
+          onToggleQR={() => {
+            QREnabled();
+            setShowQR(v => !v);
+          }}
+          onOpenColorPicker={handleOpenPicker}
+        />
 
-            <View style={{ flex: 1 }} />
-            <TouchableOpacity
-              style={[
-                styles.radioWrap,
-                { borderColor: THEME.border, backgroundColor: THEME.card },
-              ]}
-              onPress={() => {QREnabled(); setShowQR(v => !v);}}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: showQR }}
-            >
-              <View
-                style={[
-                  styles.radioOuter,
-                  { borderColor: showQR ? THEME.primary : THEME.border },
-                ]}
-              >
-                {showQR && <View style={[styles.radioInner, { backgroundColor: THEME.primary }]} />}
-              </View>
-              <Text style={{ color: THEME.text, fontWeight: "600" }}>
-                QR
-              </Text>
-            </TouchableOpacity>
+        <PreviewCard
+          html={html}
+          theme={THEME}
+        />
 
-            <TouchableOpacity
-              style={[
-                styles.colorDotWrap,
-                { borderColor: THEME.border, backgroundColor: THEME.card },
-              ]}
-              onPress={handleOpenPicker}
-              accessibilityRole="button"
-              accessibilityLabel="Choose accent color"
-            >
-              <View style={[styles.colorDot, { backgroundColor: color }]} />
-              <Text style={{ color: THEME.text, fontWeight: "600" }}>Color</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Preview card */}
-        <View
-          style={[
-            styles.card,
-            THEME.shadow,
-            { borderColor: THEME.border, backgroundColor: THEME.card },
-          ]}
-        >
-          <WebView
-            textZoom={65}
-            originWhitelist={["*"]}
-            source={{ html, baseUrl: "" }}
-            style={styles.webview}
-            javaScriptEnabled
-            domStorageEnabled
-            bounces={false}
-            automaticallyAdjustContentInsets
-          />
-        </View>
-        <View style={{ height: 50 }} />
-
-        {/* Main action: share / save */}
-        <Pressable
+        <ShareSaveFAB
+          loading={loading}
+          theme={THEME}
           onPress={() => setShowActions(true)}
-          disabled={loading}
-          style={({ pressed }) => [
-            styles.fab,
-            { backgroundColor: THEME.primary },
-            pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
-            loading && { opacity: 0.65 },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Share or Save as PDF"
-          hitSlop={6}
-        >
-          <Text style={styles.fabLabel}>Share / Save as PDF</Text>
-        </Pressable>
+        />
 
         {/* Loading overlay */}
-        {loading && (
-          <View style={styles.loadingOverlay} pointerEvents="none">
-            <View style={[styles.loadingCard, THEME.shadow, { backgroundColor: THEME.card }]}>
-              <ActivityIndicator size="small" />
-              <Text style={[styles.loadingText, { color: THEME.text }]}>Preparing…</Text>
-            </View>
-          </View>
-        )}
+        <PreparingOverlay
+          visible={loading}
+          theme={THEME}
+          styles={styles}
+        />
 
         {/* Color Picker Sheet */}
-        <Modal
+        <ColorPickerModal
           visible={showPicker}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowPicker(false)}
-        >
-          <View style={styles.modalBackdrop}>
-            <View style={[styles.modalCard, { backgroundColor: THEME.card }]}>
-              <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: THEME.text }]}>Choose an accent color</Text>
-                <Pressable
-                  onPress={handleClosePicker}
-                  style={({ pressed }) => [
-                    styles.closeBtn,
-                    { backgroundColor: THEME.soft, borderColor: THEME.border },
-                    pressed && styles.pressed,
-                  ]}
-                  android_ripple={{ color: THEME.ripple }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close color picker"
-                >
-                  <Text style={{ fontSize: 18, color: THEME.text }}>✕</Text>
-                </Pressable>
-              </View>
-
-              <View style={[styles.pickerWrap, { backgroundColor: THEME.pickerBg }]}>
-                <ColorPicker
-                  initialColor={color}
-                  showAlpha={false}
-                  size={260}
-                  onChange={({ hex }) => setColor(hex)}
-                />
-              </View>
-
-              <View style={styles.modalActions}>
-                <Button title="Done" onPress={handleColorDone} />
-                <Button
-                  title="Reset"
-                  onPress={async () => {
-                    setShowPicker(false);
-                    setColor("#0b7285");
-                    await wait(0);
-                    setShowPicker(true);
-                  }}
-                  style={{ backgroundColor: THEME.mutedBtnBg }}
-                  textStyle={{ color: THEME.text }}
-                />
-              </View>
-            </View>
-          </View>
-        </Modal>
+          theme={THEME}
+          color={color}
+          onChangeColor={setColor}
+          onClose={handleClosePicker}
+          onDone={handleColorDone}
+          onReset={async () => {
+            setShowPicker(false);
+            setColor("#0b7285");
+            await wait(0);
+            setShowPicker(true);
+          }}
+        />
 
         {/* Action Sheet */}
-        <Modal
+        <ShareActionsSheet
           visible={showActions}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowActions(false)}
-        >
-          <Pressable style={styles.sheetBackdrop} onPress={() => setShowActions(false)}>
-            <View />
-          </Pressable>
-
-          <View style={[styles.sheetCard, THEME.shadow, { backgroundColor: THEME.card }]}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <Text style={[styles.sheetTitle, { color: THEME.text }]}>What would you like to do?</Text>
-              <TouchableOpacity
-                style={[
-                  styles.colorDotWrap,
-                  { borderColor: THEME.border, backgroundColor: THEME.card },
-                ]}
-                onPress={handleOpenLink}
-                accessibilityRole="button"
-                accessibilityLabel="Choose accent color"
-              >
-                <Text style={{ color: THEME.text, fontWeight: "600" }}>🔗 Link</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.sheetButtons}>
-              <Pressable
-                onPress={handleSharePdf}
-                style={({ pressed }) => [
-                  styles.sheetBtn,
-                  { backgroundColor: THEME.soft, borderColor: THEME.border },
-                  pressed && styles.pressed,
-                ]}
-                android_ripple={{ color: THEME.ripple }}
-              >
-                <Text style={[styles.sheetBtnText, { color: THEME.text }]}>Share as PDF</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={handleSaveAsPdf}
-                style={({ pressed }) => [
-                  styles.sheetBtn,
-                  { backgroundColor: THEME.soft, borderColor: THEME.border },
-                  pressed && styles.pressed,
-                ]}
-                android_ripple={{ color: THEME.ripple }}
-              >
-                <Text style={[styles.sheetBtnText, { color: THEME.text }]}>Save as PDF</Text>
-              </Pressable>
-            </View>
-
-            <Pressable
-              onPress={() => setShowActions(false)}
-              style={({ pressed }) => [
-                styles.sheetCancel,
-                { backgroundColor: THEME.card, borderColor: THEME.border },
-                pressed && styles.pressed,
-              ]}
-              android_ripple={{ color: THEME.ripple }}
-            >
-              <Text style={[styles.sheetCancelText, { color: THEME.subtle }]}>Cancel</Text>
-            </Pressable>
-          </View>
-        </Modal>
+          theme={THEME}
+          onClose={() => setShowActions(false)}
+          onSharePdf={handleSharePdf}
+          onSavePdf={handleSaveAsPdf}
+          onOpenLink={handleOpenLink}
+        />
       </View>
     </SafeAreaView>
   );
@@ -534,187 +345,7 @@ const ViewResumeScreen = ({ onBack, navigateToEdit, navigateToProfile }) => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  container: { flex: 1 },
-
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  headerCenter: { flex: 1, alignItems: "flex-end" },
-
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { color: "#fff", fontWeight: "800" },
-  title: { fontSize: 20, fontWeight: "800" },
-  subtitle: { marginTop: 2 },
-
-  actionsRow: {
-    marginTop: 12,
-    gap: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  iconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  iconText: { fontSize: 16, fontWeight: "700" },
-  pressed: { opacity: 0.9 },
-
-  card: {
-    flex: 1,
-    margin: 16,
-    borderRadius: 10,
-    overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  webview: { flex: 1 },
-
-  colorDotWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 10,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  colorDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-
-  fab: {
-    position: "absolute",
-    right: 16,
-    bottom: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 26,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  fabLabel: { fontSize: 15, color: "#fff", fontWeight: "800" },
-
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.08)",
-  },
-  loadingCard: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  loadingText: { fontWeight: "600" },
-
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "flex-end",
-  },
-  modalCard: {
-    padding: 16,
-    paddingBottom: 20,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  modalTitle: { fontWeight: "800", fontSize: 16 },
-  pickerWrap: { borderRadius: 12, padding: 12, alignItems: "center" },
-  modalActions: { flexDirection: "row", gap: 8, marginTop: 12 },
-
-  sheetBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
-  sheetCard: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: 16,
-    paddingBottom: 24,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  sheetTitle: { fontSize: 16, fontWeight: "800", marginBottom: 12 },
-  sheetButtons: { gap: 8 },
-  sheetBtn: {
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  sheetBtnText: { fontSize: 15, fontWeight: "600", textAlign: "center" },
-  sheetCancel: {
-    marginTop: 10,
-    borderRadius: 12,
-    paddingVertical: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  sheetCancelText: { fontSize: 15, fontWeight: "700", textAlign: "center" },
-    radioWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  radioOuter: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  radioInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
+  container: { flex: 1, padding: 12 },
 });
 
 export default ViewResumeScreen;
