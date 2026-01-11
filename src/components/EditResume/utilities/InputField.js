@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { View, TextInput, Text, StyleSheet, TouchableOpacity } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { View, TextInput, Text, StyleSheet } from "react-native";
 
 const InputField = ({
   label,
