@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { View, TextInput, Text, StyleSheet } from "react-native";
 import { RichEditor, RichToolbar, actions } from "react-native-pell-rich-editor";
+import { Value } from "react-native/types_generated/Libraries/Animated/AnimatedExports";
 
 const InputField = ({
   label,
@@ -30,7 +31,7 @@ const InputField = ({
       !hasInitialized.current &&
       value
     ) {
-      editorRef.current.setContentHTML(value);
+      editorRef.current?.setContentHTML(value);
       hasInitialized.current = true;
     }
   }, [value, multiline]);

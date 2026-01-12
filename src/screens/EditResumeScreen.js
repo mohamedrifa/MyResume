@@ -34,7 +34,7 @@ import { toBase64DataUri } from "../utils/EditResume/profileProcess";
 /* ---------- helpers / normalizers ---------- */
 const emptyEdu = () => ({ stream: "", from: "", to: "", percentage: "", institute: "" });
 const emptyExp = () => ({ role: "", location: "", company: "", from: "", to: "", summary: "" });
-const emptyProj = () => ({ title: "", stack: "", description: "", image: "", link: "" });
+const emptyProj = () => ({ title: "", stack: "", description: "", link: "" });
 const emptyCert = () => ({ name: "", link: "" });
 const emptyLang = () => ({ language: "", proficiency: "" });
 
@@ -48,6 +48,8 @@ export default function EditResumeScreen({ onBack }) {
   const theme = useMemo(() => getTheme(scheme), [scheme]);
 
   const [showPreview, setShowPreview] = useState(false);
+
+  const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -90,10 +92,10 @@ export default function EditResumeScreen({ onBack }) {
       experience: [...form.experience].reverse().map(({ id, ...rest }) => rest),
       certifications: [...form.certifications].reverse().map(({ id, ...rest }) => rest),
       skills: String(form.skills)
-        .replace(/""([^"]+)""/g, "<strong>$1</strong>")
-        .split(";")
-        .map((s) => s.trim())
-        .filter(Boolean),
+          .split("<div>")
+          .map(s => s.trim())
+          .filter(Boolean)
+          .map(s => "<div>" + s),
       languages: [...(form.languages || [])]
         .reverse()
         .map((l) => ({
@@ -121,8 +123,8 @@ export default function EditResumeScreen({ onBack }) {
       address: d.address || "",
       summary: d.summary || "",
       skills: Array.isArray(d.skills)
-        ? d.skills.join("; ").replace(/<strong>(.*?)<\/strong>/g, '""$1""')
-        : (d.skills || "").replace(/<strong>(.*?)<\/strong>/g, '""$1""'),
+        ? d.skills.join("")
+        : (d.skills || ""),
       profile: d.profile || "",
       resumeColor: d.resumeColor || "#0b7285",
       education: normalizeEducation(d.education),
@@ -160,20 +162,29 @@ export default function EditResumeScreen({ onBack }) {
 
   /* save */
   const save = async () => {
+    setSaving(true);
     try {
       const payload = {
-        ...form,
-        projects: [...form.projects].reverse().map(({ id, ...rest }) => rest),
-        education: [...form.education].reverse().map(({ id, ...rest }) => rest),
-        experience: [...form.experience].reverse().map(({ id, ...rest }) => rest),
-        certifications: [...form.certifications].reverse().map(({ id, ...rest }) => rest),
+        name: form.name || "",
+        title: form.title || "",
+        email: form.email || "",
+        git: form.git || "",
+        linkedIn: form.linkedIn || "",
+        portfolio: form.portfolio || "",
+        phone: form.phone || "",
+        address: form.address || "",
+        summary: form.summary || "",
+        profile: form.profile || "",
+        resumeColor: form.resumeColor || "#0b7285",
+        education: form.education.map(({ id, ...rest }) => rest).reverse(),
+        experience: form.experience.map(({ id, ...rest }) => rest).reverse(),
+        certifications: form.certifications.map(({ id, ...rest }) => rest).reverse(),
         skills: String(form.skills)
-          .replace(/""([^"]+)""/g, "<strong>$1</strong>")
-          .split(";")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        languages: [...(form.languages || [])]
-          .reverse()
+          .split("<div>")
+          .map(s => s.trim())
+          .filter(Boolean)
+          .map(s => "<div>" + s),
+        languages: (form.languages || [])
           .map((l) => ({
             language: (l.language || "").trim(),
             proficiency:
@@ -181,14 +192,25 @@ export default function EditResumeScreen({ onBack }) {
                 ? ""
                 : clamp0to100(Number(onlyDigits(l.proficiency))),
           }))
-        .filter((l, idx, arr) => l.language || l.proficiency !== "" || arr.length === 1),
+          .filter((l, idx, arr) => l.language || l.proficiency !== "" || arr.length === 1)
+          .reverse(),
       };
+      const projectUpdates = [...form.projects].reverse().map((p, i) =>
+        update(ref(db, `users/${uid}/projects/${i}`), {
+          title: p.title,
+          stack: p.stack,
+          description: p.description,
+          link: p.link,
+        })
+      );
+      await Promise.all(projectUpdates);
       await update(ref(db, `users/${uid}`), payload);
       Alert.alert("✅ Saved", "Your resume was updated successfully!");
       onBack && onBack();
     } catch (err) {
       Alert.alert("Save failed", err.message);
     }
+    setSaving(false);
   };
 
   /* UI */
@@ -230,7 +252,7 @@ export default function EditResumeScreen({ onBack }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <FloatingSaveButton onPress={save} theme={theme} loading={loading} />
+      <FloatingSaveButton onPress={save} theme={theme} loading={loading || saving} />
 
       <PreviewModal
         visible={showPreview}

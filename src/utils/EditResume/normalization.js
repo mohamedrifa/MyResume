@@ -36,7 +36,6 @@ export const normalizeProjects = (raw) => {
     title: p.title || p.name || "",
     stack: p.stack || "",
     description: p.description || "",
-    image: p.image || "",
     link: p.link || "",
   }));
 };

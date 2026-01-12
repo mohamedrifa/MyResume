@@ -62,7 +62,10 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
   const skillsSection = () => {
     const skillsArray = Array.isArray(data.skills)
       ? data.skills
-      : (data.skills || "").split(';');
+      : (data.skills || "").split("<div>")
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(s => "<div>" + s);;
 
     const hasAny = skillsArray.some(s => String(s).trim().length > 0);
     if (hasAny) {
@@ -90,9 +93,10 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
     for (let i = 0; i < projects.length; i++) {
       const p = projects[i] || {};
       const lines = String(p.description || "")
-        .split(";")
+        .split("<div>")
         .map(s => s.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .map(s => "<div>" + s);
       const listItems = lines.map(line => `<li>${line}</li>`).join("");
       projectContent += `
         <div class="block">
@@ -141,9 +145,10 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
     for (let i = 0; i < experiences.length; i++) {
       const p = experiences[i] || {};
       const lines = String(p.summary || "")
-        .split(';')
+        .split("<div>")
         .map(s => s.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .map(s => "<div>" + s);
       const listItems = lines.map(line => `<li>${line}</li>`).join('');
       experienceContent += `
         <div class="block">
