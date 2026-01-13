@@ -254,10 +254,10 @@ export default function EditResumeScreen({ onBack }) {
           <CertificateSection form={form} setForm={setForm} theme={theme} emptyCert={emptyCert} />
 
           <CustomSection
-  form={form}
-  setForm={setForm}
-  theme={theme}
-/>
+            form={form}
+            setForm={setForm}
+            theme={theme}
+          />
 
         </ScrollView>
       </KeyboardAvoidingView>
