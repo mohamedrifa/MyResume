@@ -1,3 +1,9 @@
+const emptyEdu = () => ({ stream: "", from: "", to: "", percentage: "", institute: "" });
+const emptyExp = () => ({ role: "", location: "", company: "", from: "", to: "", summary: "" });
+const emptyProj = () => ({ title: "", stack: "", description: "", link: "" });
+const emptyCert = () => ({ name: "", link: "" });
+const emptyLang = () => ({ language: "", proficiency: "" });
+
 const ensureArray = (val) => {
   if (Array.isArray(val)) return val;
   if (val && typeof val === "object") return Object.values(val);
