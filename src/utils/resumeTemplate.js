@@ -62,10 +62,11 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
   const skillsSection = () => {
     const skillsArray = Array.isArray(data.skills)
       ? data.skills
-      : (data.skills || "").split("<div>")
+      : (data.skills || "")
+        .split(/<\/?div>|<\/?p>|<br\s*\/?>/i)
         .map(s => s.trim())
         .filter(Boolean)
-        .map(s => "<div>" + s);;
+        .map(s => `<div>${s}</div>`);
 
     const hasAny = skillsArray.some(s => String(s).trim().length > 0);
     if (hasAny) {
@@ -93,10 +94,10 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
     for (let i = 0; i < projects.length; i++) {
       const p = projects[i] || {};
       const lines = String(p.description || "")
-        .split("<div>")
+        .split(/<\/?div>|<\/?p>|<br\s*\/?>/i)
         .map(s => s.trim())
         .filter(Boolean)
-        .map(s => "<div>" + s);
+        .map(s => `<div>${s}</div>`);
       const listItems = lines.map(line => `<li>${line}</li>`).join("");
       projectContent += `
         <div class="block">
@@ -145,10 +146,10 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
     for (let i = 0; i < experiences.length; i++) {
       const p = experiences[i] || {};
       const lines = String(p.summary || "")
-        .split("<div>")
+        .split(/<\/?div>|<\/?p>|<br\s*\/?>/i)
         .map(s => s.trim())
         .filter(Boolean)
-        .map(s => "<div>" + s);
+        .map(s => `<div>${s}</div>`);
       const listItems = lines.map(line => `<li>${line}</li>`).join('');
       experienceContent += `
         <div class="block">
@@ -231,10 +232,10 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
                   `;
                 }
                 const lines = String(item.description || "")
-                  .split("<div>")
-                  .map((s) => s.trim())
+                  .split(/<\/?div>|<\/?p>|<br\s*\/?>/i)
+                  .map(s => s.trim())
                   .filter(Boolean)
-                  .map((s) => `<li><div>${s}</li>`)
+                  .map(s => `<li><div>${s}</div></li>`)
                   .join("");
                 return `
                   <div class="block">
