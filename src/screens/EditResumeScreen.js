@@ -30,6 +30,7 @@ import LanguageSection from "../components/EditResume/LanguageSection";
 import CertificateSection from "../components/EditResume/CertificateSection";
 import { normalizeEducation, normalizeExperience, normalizeProjects, normalizeCertifications, normalizeLanguages } from "../utils/EditResume/normalization";
 import { toBase64DataUri } from "../utils/EditResume/profileProcess";
+import CustomSection from "../components/EditResume/CustomSection";
 
 /* ---------- helpers / normalizers ---------- */
 const emptyEdu = () => ({ stream: "", from: "", to: "", percentage: "", institute: "" });
@@ -132,6 +133,7 @@ export default function EditResumeScreen({ onBack }) {
       projects: normalizeProjects(d.projects),
       certifications: normalizeCertifications(d.certifications),
       languages: normalizeLanguages(d.languages),
+      customSections: d.customSections || [],
     });
   };
 
@@ -179,6 +181,7 @@ export default function EditResumeScreen({ onBack }) {
         education: form.education.map(({ id, ...rest }) => rest).reverse(),
         experience: form.experience.map(({ id, ...rest }) => rest).reverse(),
         certifications: form.certifications.map(({ id, ...rest }) => rest).reverse(),
+        customSections: form.customSections || [],
         skills: String(form.skills)
           .split("<div>")
           .map(s => s.trim())
@@ -249,6 +252,13 @@ export default function EditResumeScreen({ onBack }) {
           <LanguageSection form={form} setForm={setForm} theme={theme} emptyLang={emptyLang} />
 
           <CertificateSection form={form} setForm={setForm} theme={theme} emptyCert={emptyCert} />
+
+          <CustomSection
+  form={form}
+  setForm={setForm}
+  theme={theme}
+/>
+
         </ScrollView>
       </KeyboardAvoidingView>
 
