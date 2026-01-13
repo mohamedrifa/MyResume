@@ -38,7 +38,6 @@ export default function ProjectsSection({
   return (
     <Section
       title="Projects"
-      suggestion='Use ";" for new lines in Description'
       theme={theme}
     >
       {form.projects.map((p, idx) => (

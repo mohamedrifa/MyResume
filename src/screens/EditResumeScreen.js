@@ -237,7 +237,7 @@ export default function EditResumeScreen({ onBack }) {
             <InputField multiline value={form.summary} onChangeText={(t) => setForm(prev => ({ ...prev, summary: t }))} placeholder="Brief overview of your experience and goals." theme={theme} />
           </Section>
 
-          <Section title="Skills" suggestion='Separate skills by ";" — supports ""bold""' theme={theme}>
+          <Section title="Skills" theme={theme}>
             <InputField multiline value={form.skills} onChangeText={(t) => setForm(prev => ({ ...prev, skills: t }))} placeholder="e.g., JavaScript; React; Node.js" theme={theme} />
           </Section>
 

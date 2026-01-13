@@ -31,7 +31,6 @@ export default function ExperienceSection({
   return (
     <Section
       title="Experience"
-      suggestion='Use ";" for new lines in Summary'
       theme={theme}
     >
       {form.experience.map((x, idx) => (
