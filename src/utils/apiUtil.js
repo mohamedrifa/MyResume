@@ -27,7 +27,9 @@ export function useFetchUserData() {
         const cached = await AsyncStorage.getItem(cacheKey);
         if (cached) {
           setResume(JSON.parse(cached));
-          setLoading(false); // instant UI
+          setTimeout(() => {
+            setLoading(false);
+          }, 1000);
         }
       } catch (e) {
         console.warn("Cache read error", e);
@@ -43,12 +45,21 @@ export function useFetchUserData() {
       r,
       async (snapshot) => {
         const data = snapshot.val();
-        setResume(data);
-        setLoading(false);
-
-        // 3️⃣ Update cache
+    
+        // 🔹 REMOVE image from each project
+        const sanitized = {
+          ...data,
+          projects: Array.isArray(data?.projects)
+            ? data.projects.map(({ image, ...rest }) => rest)
+            : [],
+        };
+    
+        setResume(sanitized);
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
         try {
-          await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
+          await AsyncStorage.setItem(cacheKey, JSON.stringify(sanitized));
         } catch (e) {
           console.warn("Cache write error", e);
         }
@@ -58,7 +69,6 @@ export function useFetchUserData() {
         setLoading(false);
       }
     );
-
     return () => unsub();
   }, [uid]);
 
