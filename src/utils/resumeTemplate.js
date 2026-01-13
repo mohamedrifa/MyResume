@@ -210,6 +210,38 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
     }
   };
 
+  const CustomSection = () => {
+    if (!Array.isArray(data.customSections) || data.customSections.length === 0) {
+      return "";
+    }
+    return data.customSections
+      .map((section) => {
+        const items = Array.isArray(section.items) ? section.items : [];
+        return `
+          <section aria-label="${section.title || "Custom Section"}">
+            <h2>${section.title || "Custom Section"}</h2>
+            ${items
+              .map((item) => {
+                const lines = String(item.description || "")
+                  .split("<div>")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+                  .map((s) => `<li><div>${s}</li>`)
+                  .join("");
+                return `
+                  <div class="block">
+                    ${item.heading ? `<h3>${item.heading}</h3>` : ""}
+                    ${lines ? `<ul>${lines}</ul>` : ""}
+                  </div>
+                `;
+              })
+              .join("")}
+          </section>
+        `;
+      })
+      .join("");
+  };
+
   const certifications = () => {
     if (Array.isArray(data.certifications) && data.certifications.length > 0) {
       const items = data.certifications
@@ -433,6 +465,9 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
 
   <!-- Languages -->
   ${languagesSection()}
+
+  <!-- Custom Sections -->
+  ${CustomSection()}
 
   <!-- Certifications -->
   ${certifications()}
