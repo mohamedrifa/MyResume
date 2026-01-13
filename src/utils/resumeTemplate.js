@@ -222,6 +222,14 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
             <h2>${section.title || "Custom Section"}</h2>
             ${items
               .map((item) => {
+                if(!item.description.includes("</div><div>")) {
+                  return `
+                    <div class="block">
+                      ${item.heading ? `<h3>${item.heading}</h3>` : ""}
+                      ${item.description ? `<p>${item.description}</p>` : ""}
+                    </div>
+                  `;
+                }
                 const lines = String(item.description || "")
                   .split("<div>")
                   .map((s) => s.trim())
@@ -231,7 +239,7 @@ export const resumeTemplate = (data, color, showPortfolioQR = false) => {
                 return `
                   <div class="block">
                     ${item.heading ? `<h3>${item.heading}</h3>` : ""}
-                    ${lines ? `<ul>${lines}</ul>` : ""}
+                    ${lines || lines !== "" ? `<ul>${lines}</ul>` : ""}
                   </div>
                 `;
               })
